@@ -21,12 +21,52 @@ type Product = {
   color: string
 }
 
+const categoryIcons: Record<string, JSX.Element> = {
+  chairs: (
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 28V12a4 4 0 0 1 4-4h24a4 4 0 0 1 4 4v16" />
+      <path d="M10 28a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h2v8M52 44v8M54 28a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-2" />
+      <path d="M12 44h40" />
+      <rect x="12" y="28" width="40" height="16" rx="4" />
+    </svg>
+  ),
+  tables: (
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="8" y="20" width="48" height="6" rx="2" />
+      <line x1="14" y1="26" x2="14" y2="52" />
+      <line x1="50" y1="26" x2="50" y2="52" />
+      <line x1="10" y1="52" x2="18" y2="52" />
+      <line x1="46" y1="52" x2="54" y2="52" />
+    </svg>
+  ),
+  beds: (
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 40V20a4 4 0 0 1 4-4h6v12h28V16h6a4 4 0 0 1 4 4v20" />
+      <rect x="4" y="40" width="56" height="8" rx="3" />
+      <line x1="10" y1="48" x2="10" y2="54" />
+      <line x1="54" y1="48" x2="54" y2="54" />
+      <rect x="14" y="22" width="10" height="6" rx="2" />
+    </svg>
+  ),
+  lighting: (
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M24 40h16v4a2 2 0 0 1-2 2H26a2 2 0 0 1-2-2v-4z" />
+      <path d="M26 46v4M38 46v4" />
+      <path d="M20 40c-3-4-5-9-5-15a17 17 0 0 1 34 0c0 6-2 11-5 15" />
+      <line x1="32" y1="4" x2="32" y2="8" />
+      <line x1="52" y1="12" x2="49" y2="14" />
+      <line x1="12" y1="12" x2="15" y2="14" />
+      <line x1="56" y1="25" x2="52" y2="25" />
+      <line x1="12" y1="25" x2="8" y2="25" />
+    </svg>
+  ),
+}
+
 const categories = [
   {
     id: 1,
     slug: 'chairs',
     name: 'სამისხდომო',
-    image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=500&q=80',
     count: 48,
     description: 'კომფორტული სავარძლები, სკამები და პუფები ყველა ოთახისთვის',
   },
@@ -34,7 +74,6 @@ const categories = [
     id: 2,
     slug: 'tables',
     name: 'მაგიდები',
-    image: 'https://images.unsplash.com/photo-1611269154421-4e27233ac5c7?w=500&q=80',
     count: 35,
     description: 'სასადილო, ჟურნალის, სამუშაო და კონსოლის მაგიდები',
   },
@@ -42,7 +81,6 @@ const categories = [
     id: 3,
     slug: 'beds',
     name: 'საწოლები',
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&q=80',
     count: 24,
     description: 'ერთადგილიანი და ორადგილიანი საწოლები ლეიბით და ულეიბოდ',
   },
@@ -50,7 +88,6 @@ const categories = [
     id: 4,
     slug: 'lighting',
     name: 'განათება',
-    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?w=500&q=80',
     count: 62,
     description: 'ჭაღები, მაგიდის ნათურები, კედლის სანათები და LED ლენტები',
   },
@@ -441,7 +478,7 @@ function Navbar() {
         <nav className={`nav-links ${menuOpen ? 'open' : ''}`}>
           <a href="#categories" onClick={(e) => { e.preventDefault(); scrollToSection('categories') }}>კატეგორიები</a>
           <a href="#products" onClick={(e) => { e.preventDefault(); scrollToSection('products') }}>პროდუქცია</a>
-          <a href="#about" onClick={(e) => { e.preventDefault(); scrollToSection('about') }}>ჩვენ შესახებ</a>
+          <Link to="/about">ჩვენ შესახებ</Link>
           <a href="#contact" onClick={(e) => { e.preventDefault(); scrollToSection('contact') }}>კონტაქტი</a>
         </nav>
         <div className="nav-actions">
@@ -485,48 +522,106 @@ function Navbar() {
   )
 }
 
-/* ── Hero ───────────────────────────────────────── */
-function Hero() {
+/* ── Hero Slider ─────────────────────────────────── */
+const heroSlides = [
+  {
+    id: 1,
+    title: 'ზაფხულის ფასდაკლება',
+    subtitle: 'ყველა სავარძელზე -30%',
+    description: 'აირჩიე შენი საყვარელი სავარძელი განსაკუთრებულ ფასად. აქცია მოქმედებს მარაგის ამოწურვამდე.',
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1200&q=80',
+    buttonText: 'აქციის ნახვა',
+    buttonLink: '/category/chairs',
+    accent: '#C9A96E',
+  },
+  {
+    id: 2,
+    title: 'ახალი კოლექცია 2026',
+    subtitle: 'თანამედროვე საწოლები',
+    description: 'აღმოაჩინე ახალი კოლექციის საწოლები, რომლებიც კომფორტს და სტილს აერთიანებს.',
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80',
+    buttonText: 'კოლექციის ნახვა',
+    buttonLink: '/category/beds',
+    accent: '#2A6F6F',
+  },
+  {
+    id: 3,
+    title: 'უფასო მიტანა',
+    subtitle: 'შეკვეთებზე 500₾-დან',
+    description: 'შეუკვეთე ავეჯი ონლაინ და მიიღე უფასო მიტანის სერვისი თბილისის მასშტაბით.',
+    image: 'https://images.unsplash.com/photo-1618220179428-22790b461013?w=1200&q=80',
+    buttonText: 'შეკვეთა',
+    buttonLink: '/category/tables',
+    accent: '#8B7355',
+  },
+]
+
+function HeroSlider() {
+  const [current, setCurrent] = useState(0)
+  const [paused, setPaused] = useState(false)
+
+  const next = useCallback(() => setCurrent((c) => (c + 1) % heroSlides.length), [])
+  const prev = useCallback(() => setCurrent((c) => (c - 1 + heroSlides.length) % heroSlides.length), [])
+
+  useEffect(() => {
+    if (paused) return
+    const timer = setInterval(next, 5000)
+    return () => clearInterval(timer)
+  }, [paused, next])
+
+  const slide = heroSlides[current]
+
   return (
-    <section className="hero">
-      <div className="container hero-inner">
-        <div className="hero-content">
-          <span className="hero-tag">ახალი კოლექცია 2026</span>
-          <h1>შექმენი შენი<br />სივრცე სტილით</h1>
-          <p className="hero-desc">
-            აღმოაჩინე უნიკალური ავეჯი, რომელიც შენს სახლს
-            თბილ და თანამედროვე სივრცედ აქცევს.
-          </p>
-          <div className="hero-buttons">
-            <a href="#products" className="btn btn-primary">კოლექციის ნახვა</a>
-            <a href="#about" className="btn btn-outline">მეტი ჩვენ შესახებ</a>
-          </div>
-          <div className="hero-stats">
-            <div className="stat">
-              <span className="stat-num">2K+</span>
-              <span className="stat-label">პროდუქტი</span>
-            </div>
-            <div className="stat">
-              <span className="stat-num">15K+</span>
-              <span className="stat-label">კმაყოფილი კლიენტი</span>
-            </div>
-            <div className="stat">
-              <span className="stat-num">98%</span>
-              <span className="stat-label">პოზიტიური შეფასება</span>
-            </div>
-          </div>
+    <section
+      className="hero-slider"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="hero-slider-bg">
+        {heroSlides.map((s, i) => (
+          <img
+            key={s.id}
+            src={s.image}
+            alt={s.title}
+            className={`hero-slider-img ${i === current ? 'active' : ''}`}
+          />
+        ))}
+        <div className="hero-slider-overlay" />
+      </div>
+
+      <div className="container hero-slider-inner">
+        <div className="hero-slider-content">
+          <span className="hero-slider-tag" style={{ background: slide.accent }}>
+            {slide.subtitle}
+          </span>
+          <h1 className="hero-slider-title">{slide.title}</h1>
+          <p className="hero-slider-desc">{slide.description}</p>
+          <Link to={slide.buttonLink} className="btn btn-primary hero-slider-btn">
+            {slide.buttonText}
+          </Link>
         </div>
-        <div className="hero-image">
-          <div className="hero-img-wrapper">
-            <img
-              src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80"
-              alt="თანამედროვე ავეჯი"
-            />
-            <div className="hero-img-badge">
-              <span className="badge-price">-30%</span>
-              <span className="badge-text">სეზონური ფასდაკლება</span>
-            </div>
+
+        <div className="hero-slider-controls">
+          <button className="hero-slider-arrow" onClick={prev} aria-label="წინა">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <div className="hero-slider-dots">
+            {heroSlides.map((_, i) => (
+              <button
+                key={i}
+                className={`hero-slider-dot ${i === current ? 'active' : ''}`}
+                onClick={() => setCurrent(i)}
+                aria-label={`სლაიდი ${i + 1}`}
+              />
+            ))}
           </div>
+          <button className="hero-slider-arrow" onClick={next} aria-label="შემდეგი">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
         </div>
       </div>
     </section>
@@ -538,19 +633,15 @@ function CategoriesSection() {
   return (
     <section className="categories" id="categories">
       <div className="container">
-        <div className="section-header">
-          <span className="section-tag">კატეგორიები</span>
-          <h2>აირჩიე კატეგორია</h2>
-          <p className="section-desc">იპოვე ავეჯი შენი სახლის ყველა ოთახისთვის</p>
-        </div>
         <div className="categories-grid">
           {categories.map((cat) => (
             <Link to={`/category/${cat.slug}`} key={cat.id} className="category-card">
-              <img src={cat.image} alt={cat.name} />
-              <div className="category-overlay">
-                <h3>{cat.name}</h3>
-                <span>{cat.count} ნივთი</span>
+              <div className="category-icon">
+                {categoryIcons[cat.slug]}
               </div>
+              <h3>{cat.name}</h3>
+              <span className="category-count">{cat.count} ნივთი</span>
+              <p className="category-desc">{cat.description}</p>
             </Link>
           ))}
         </div>
@@ -740,7 +831,7 @@ function Footer() {
             </div>
             <div className="footer-col">
               <h4>ინფორმაცია</h4>
-              <a href="#about">ჩვენ შესახებ</a>
+              <Link to="/about">ჩვენ შესახებ</Link>
               <a href="#">მიტანის პირობები</a>
               <a href="#">დაბრუნების პოლიტიკა</a>
               <a href="#">FAQ</a>
@@ -765,14 +856,19 @@ function Footer() {
    PAGES
    ══════════════════════════════════════════════════ */
 
+/* ── About Page ────────────────────────────────── */
+function AboutPage() {
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+  return <Banner />
+}
+
 /* ── Home Page ───────────────────────────────────── */
 function HomePage() {
   return (
     <>
-      <Hero />
+      <HeroSlider />
       <CategoriesSection />
       <FeaturedProducts />
-      <Banner />
     </>
   )
 }
@@ -1132,6 +1228,17 @@ function Layout() {
       <Navbar />
       <Outlet />
       <Footer />
+      <a
+        href="https://wa.me/995555555555"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="whatsapp-float"
+        aria-label="WhatsApp"
+      >
+        <svg viewBox="0 0 32 32" width="28" height="28" fill="#fff">
+          <path d="M16.004 0h-.008C7.174 0 0 7.176 0 16c0 3.5 1.132 6.742 3.054 9.376L1.054 31.2l6.042-1.94A15.9 15.9 0 0 0 16.004 32C24.826 32 32 24.822 32 16S24.826 0 16.004 0zm9.31 22.598c-.39 1.1-1.932 2.014-3.168 2.28-.844.18-1.946.324-5.658-1.216-4.752-1.97-7.808-6.8-8.044-7.116-.228-.316-1.912-2.548-1.912-4.86s1.21-3.448 1.64-3.92c.43-.47.938-.588 1.252-.588.314 0 .628.002.902.016.29.014.678-.11 1.06.81.392.94 1.332 3.252 1.448 3.488.118.236.196.51.04.824-.158.316-.236.512-.472.788-.236.274-.496.612-.708.822-.236.236-.482.492-.208.964.274.472 1.218 2.012 2.616 3.26 1.798 1.604 3.314 2.1 3.786 2.336.472.236.748.196 1.024-.118.274-.314 1.178-1.374 1.492-1.844.314-.472.628-.392 1.06-.236.432.158 2.742 1.294 3.212 1.53.472.236.786.354.902.55.118.196.118 1.138-.27 2.24z" />
+        </svg>
+      </a>
     </CartProvider>
   )
 }
@@ -1332,6 +1439,7 @@ export const routes: RouteObject[] = [
       { path: '/category/:slug', element: <CategoryPage /> },
       { path: '/product/:id', element: <ProductDetailPage /> },
       { path: '/cart', element: <CartPage /> },
+      { path: '/about', element: <AboutPage /> },
     ],
   },
 ]
