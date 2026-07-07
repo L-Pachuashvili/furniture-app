@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import type { ReactNode } from 'react'
 import { Link, useParams, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import type { RouteObject } from 'react-router-dom'
 import './App.css'
@@ -21,7 +22,7 @@ type Product = {
   color: string
 }
 
-const categoryIcons: Record<string, JSX.Element> = {
+const categoryIcons: Record<string, ReactNode> = {
   chairs: (
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 28V12a4 4 0 0 1 4-4h24a4 4 0 0 1 4 4v16" />
@@ -67,6 +68,7 @@ const categories = [
     id: 1,
     slug: 'chairs',
     name: 'სამისხდომო',
+    image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=500&q=80',
     count: 48,
     description: 'კომფორტული სავარძლები, სკამები და პუფები ყველა ოთახისთვის',
   },
@@ -74,6 +76,7 @@ const categories = [
     id: 2,
     slug: 'tables',
     name: 'მაგიდები',
+    image: 'https://images.unsplash.com/photo-1611269154421-4e27233ac5c7?w=500&q=80',
     count: 35,
     description: 'სასადილო, ჟურნალის, სამუშაო და კონსოლის მაგიდები',
   },
@@ -81,6 +84,7 @@ const categories = [
     id: 3,
     slug: 'beds',
     name: 'საწოლები',
+    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&q=80',
     count: 24,
     description: 'ერთადგილიანი და ორადგილიანი საწოლები ლეიბით და ულეიბოდ',
   },
@@ -88,6 +92,7 @@ const categories = [
     id: 4,
     slug: 'lighting',
     name: 'განათება',
+    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?w=500&q=80',
     count: 62,
     description: 'ჭაღები, მაგიდის ნათურები, კედლის სანათები და LED ლენტები',
   },
