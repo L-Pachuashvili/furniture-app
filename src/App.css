@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════
-   AURO Furniture Store - Styles
+   TAIKA Furniture Store - Styles
    ══════════════════════════════════════════════════ */
 
 /* ── Navbar ─────────────────────────────────────── */
@@ -347,7 +347,7 @@
 /* ── Hero Slider ─────────────────────────────────── */
 .hero-slider {
   position: relative;
-  height: 520px;
+  height: 620px;
   overflow: hidden;
 }
 
@@ -482,7 +482,7 @@
 
 @media (max-width: 768px) {
   .hero-slider {
-    height: 440px;
+    height: 520px;
   }
 
   .hero-slider-title {
@@ -501,7 +501,7 @@
 
 @media (max-width: 480px) {
   .hero-slider {
-    height: 400px;
+    height: 460px;
   }
 
   .hero-slider-title {

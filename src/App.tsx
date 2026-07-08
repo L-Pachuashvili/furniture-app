@@ -401,7 +401,7 @@ function useCart() {
 function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('auro-cart')
+      const saved = localStorage.getItem('taika-cart')
       return saved ? JSON.parse(saved) : []
     } catch {
       return []
@@ -409,7 +409,7 @@ function CartProvider({ children }: { children: React.ReactNode }) {
   })
 
   useEffect(() => {
-    localStorage.setItem('auro-cart', JSON.stringify(items))
+    localStorage.setItem('taika-cart', JSON.stringify(items))
   }, [items])
 
   const toggleCart = useCallback((product: Product) => {
@@ -479,10 +479,9 @@ function Navbar() {
   return (
     <header className="navbar">
       <div className="container navbar-inner">
-        <Link to="/" className="logo">AURO</Link>
+        <Link to="/" className="logo">TAIKA</Link>
         <nav className={`nav-links ${menuOpen ? 'open' : ''}`}>
           <a href="#categories" onClick={(e) => { e.preventDefault(); scrollToSection('categories') }}>კატეგორიები</a>
-          <a href="#products" onClick={(e) => { e.preventDefault(); scrollToSection('products') }}>პროდუქცია</a>
           <Link to="/about">ჩვენ შესახებ</Link>
           <a href="#contact" onClick={(e) => { e.preventDefault(); scrollToSection('contact') }}>კონტაქტი</a>
         </nav>
@@ -738,7 +737,7 @@ function Banner() {
           <span className="section-tag">ჩვენ შესახებ</span>
           <h2>ვქმნით სივრცეებს,<br />სადაც ცხოვრება სასიამოვნოა</h2>
           <p>
-            AURO-ში ვირჩევთ მხოლოდ უმაღლესი ხარისხის მასალებს და ვთანამშრომლობთ
+            TAIKA-ში ვირჩევთ მხოლოდ უმაღლესი ხარისხის მასალებს და ვთანამშრომლობთ
             საუკეთესო დიზაინერებთან, რომ ყველა ნივთი იყოს ფუნქციური, ესთეტიკური
             და გამძლე.
           </p>
@@ -794,7 +793,7 @@ function Footer() {
       <div className="container">
         <div className="footer-top">
           <div className="footer-brand">
-            <Link to="/" className="logo">AURO</Link>
+            <Link to="/" className="logo">TAIKA</Link>
             <p>თანამედროვე ავეჯი თანამედროვე ცხოვრებისთვის. ვქმნით კომფორტს და სტილს შენს სივრცეში.</p>
             <div className="social-links">
               <a href="#" aria-label="Facebook">
@@ -834,13 +833,13 @@ function Footer() {
             <div className="footer-col">
               <h4>კონტაქტი</h4>
               <a href="tel:+995555123456">+995 555 12 34 56</a>
-              <a href="mailto:info@auro.ge">info@auro.ge</a>
+              <a href="mailto:info@taika.ge">info@taika.ge</a>
               <span>თბილისი, საქართველო</span>
             </div>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; 2026 AURO. ყველა უფლება დაცულია.</p>
+          <p>&copy; 2026 TAIKA. ყველა უფლება დაცულია.</p>
         </div>
       </div>
     </footer>
@@ -890,7 +889,7 @@ function BusinessPage() {
       </div>
       <div className="container business-content">
         <div className="business-info">
-          <h2>რატომ AURO?</h2>
+          <h2>რატომ TAIKA?</h2>
           <div className="business-benefits">
             <div className="benefit">
               <div className="benefit-icon">
