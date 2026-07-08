@@ -513,6 +513,172 @@
   }
 }
 
+/* ── Business Page ──────────────────────────────── */
+.business-hero {
+  background: var(--bg-dark);
+  padding: 80px 0 60px;
+  text-align: center;
+  color: #fff;
+}
+
+.business-hero .section-tag {
+  background: var(--teal);
+  color: #fff;
+}
+
+.business-hero h1 {
+  font-family: var(--font-heading);
+  font-size: 42px;
+  color: #fff;
+  margin: 16px 0 12px;
+}
+
+.business-hero p {
+  color: rgba(255,255,255,0.7);
+  font-size: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.business-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  padding: 60px 0 80px;
+  align-items: start;
+}
+
+.business-info h2 {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  margin-bottom: 28px;
+}
+
+.business-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.benefit {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.benefit-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  background: var(--teal-light);
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.benefit strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+  color: var(--primary);
+}
+
+.benefit p {
+  font-size: 13px;
+  color: var(--secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.business-form-wrapper {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px;
+  box-shadow: var(--shadow);
+}
+
+.business-form h3 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--primary);
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.business-success {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.business-success h3 {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  margin: 20px 0 8px;
+}
+
+.business-success p {
+  color: var(--secondary);
+  font-size: 15px;
+}
+
+@media (max-width: 768px) {
+  .business-content {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .business-hero h1 {
+    font-size: 30px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── WhatsApp Float ─────────────────────────────── */
 .whatsapp-float {
   position: fixed;

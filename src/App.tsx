@@ -541,23 +541,13 @@ const heroSlides = [
   },
   {
     id: 2,
-    title: 'ახალი კოლექცია 2026',
-    subtitle: 'თანამედროვე საწოლები',
-    description: 'აღმოაჩინე ახალი კოლექციის საწოლები, რომლებიც კომფორტს და სტილს აერთიანებს.',
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200&q=80',
-    buttonText: 'კოლექციის ნახვა',
-    buttonLink: '/category/beds',
+    title: 'კორპორატიული შეთავაზება',
+    subtitle: 'კომპანიებისთვის',
+    description: 'გაგვიგზავნეთ განაცხადი და ჩვენი გუნდი დაგიკავშირდებათ ინდივიდუალური შეთავაზებით. ოფისის ავეჯი, HoReCa პროექტები და სხვა.',
+    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80',
+    buttonText: 'განაცხადის შევსება',
+    buttonLink: '/business',
     accent: '#2A6F6F',
-  },
-  {
-    id: 3,
-    title: 'უფასო მიტანა',
-    subtitle: 'შეკვეთებზე 500₾-დან',
-    description: 'შეუკვეთე ავეჯი ონლაინ და მიიღე უფასო მიტანის სერვისი თბილისის მასშტაბით.',
-    image: 'https://images.unsplash.com/photo-1618220179428-22790b461013?w=1200&q=80',
-    buttonText: 'შეკვეთა',
-    buttonLink: '/category/tables',
-    accent: '#8B7355',
   },
 ]
 
@@ -865,6 +855,178 @@ function Footer() {
 function AboutPage() {
   useEffect(() => { window.scrollTo(0, 0) }, [])
   return <Banner />
+}
+
+/* ── Business Page ──────────────────────────────── */
+function BusinessPage() {
+  const [formData, setFormData] = useState({
+    companyName: '',
+    contactPerson: '',
+    email: '',
+    phone: '',
+    message: '',
+  })
+  const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitted(true)
+  }
+
+  return (
+    <section className="business-page">
+      <div className="business-hero">
+        <div className="container">
+          <span className="section-tag">B2B</span>
+          <h1>კორპორატიული შეთავაზება</h1>
+          <p>შეავსეთ განაცხადი და ჩვენი გუნდი დაგიკავშირდებათ 24 საათის განმავლობაში</p>
+        </div>
+      </div>
+      <div className="container business-content">
+        <div className="business-info">
+          <h2>რატომ AURO?</h2>
+          <div className="business-benefits">
+            <div className="benefit">
+              <div className="benefit-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+              <div>
+                <strong>ხარისხის გარანტია</strong>
+                <p>ყველა პროდუქტზე 5 წლიანი გარანტია</p>
+              </div>
+            </div>
+            <div className="benefit">
+              <div className="benefit-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                </svg>
+              </div>
+              <div>
+                <strong>სპეციალური ფასები</strong>
+                <p>კორპორატიული კლიენტებისთვის ინდივიდუალური ფასები</p>
+              </div>
+            </div>
+            <div className="benefit">
+              <div className="benefit-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="3" width="15" height="13" />
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                  <circle cx="5.5" cy="18.5" r="2.5" />
+                  <circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+              </div>
+              <div>
+                <strong>უფასო მიტანა და მონტაჟი</strong>
+                <p>საქართველოს მასშტაბით უფასო ტრანსპორტირება</p>
+              </div>
+            </div>
+            <div className="benefit">
+              <div className="benefit-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+                </svg>
+              </div>
+              <div>
+                <strong>პერსონალური მენეჯერი</strong>
+                <p>თქვენი პროექტის მართვა ერთი კონტაქტი პირით</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="business-form-wrapper">
+          {submitted ? (
+            <div className="business-success">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <h3>განაცხადი მიღებულია!</h3>
+              <p>ჩვენი გუნდი დაგიკავშირდებათ 24 საათის განმავლობაში.</p>
+            </div>
+          ) : (
+            <form className="business-form" onSubmit={handleSubmit}>
+              <h3>შეავსეთ განაცხადი</h3>
+              <div className="form-group">
+                <label htmlFor="companyName">კომპანიის სახელი *</label>
+                <input
+                  type="text"
+                  id="companyName"
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  required
+                  placeholder="შპს მაგალითი"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="contactPerson">საკონტაქტო პირი *</label>
+                <input
+                  type="text"
+                  id="contactPerson"
+                  name="contactPerson"
+                  value={formData.contactPerson}
+                  onChange={handleChange}
+                  required
+                  placeholder="სახელი გვარი"
+                />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="email">ელ. ფოსტა *</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    placeholder="info@company.ge"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="phone">ტელეფონი</label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="+995 5XX XXX XXX"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="message">შეტყობინება *</label>
+                <textarea
+                  id="message"
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
+                  rows={5}
+                  placeholder="აღწერეთ თქვენი საჭიროება: რა ტიპის ავეჯი გჭირდებათ, რაოდენობა, ვადები..."
+                />
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+                განაცხადის გაგზავნა
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </section>
+  )
 }
 
 /* ── Home Page ───────────────────────────────────── */
@@ -1445,6 +1607,7 @@ export const routes: RouteObject[] = [
       { path: '/product/:id', element: <ProductDetailPage /> },
       { path: '/cart', element: <CartPage /> },
       { path: '/about', element: <AboutPage /> },
+      { path: '/business', element: <BusinessPage /> },
     ],
   },
 ]
