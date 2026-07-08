@@ -706,7 +706,6 @@ function FeaturedProducts() {
       <div className="container">
         <div className="section-header">
           <span className="section-tag">პროდუქცია</span>
-          <h2>პოპულარული ნივთები</h2>
           <p className="section-desc">ჩვენი ყველაზე მოთხოვნადი ავეჯი</p>
         </div>
         <div className="products-grid">
@@ -832,9 +831,9 @@ function Footer() {
             </div>
             <div className="footer-col">
               <h4>კონტაქტი</h4>
-              <a href="tel:+995555123456">+995 555 12 34 56</a>
+              <a href="tel:+995568222234">+995 555 12 34 56</a>
               <a href="mailto:info@taika.ge">info@taika.ge</a>
-              <span>თბილისი, საქართველო</span>
+              <span>რუსთავი, საქართველო</span>
             </div>
           </div>
         </div>
@@ -1028,12 +1027,259 @@ function BusinessPage() {
   )
 }
 
+/* ── Mattress Quiz ───────────────────────────────── */
+type QuizAnswer = {
+  sleepPosition: string
+  firmness: string
+  bodyWeight: string
+  issue: string
+  budget: string
+}
+
+const quizSteps = [
+  {
+    key: 'sleepPosition' as const,
+    question: 'როგორ გიყვარს ძილი?',
+    subtitle: 'აირჩიე შენი ძირითადი ძილის პოზა',
+    options: [
+      { value: 'back', label: 'ზურგზე', icon: '🛌', desc: 'ზურგზე მწოლიარე' },
+      { value: 'side', label: 'გვერდზე', icon: '😴', desc: 'გვერდით მწოლიარე' },
+      { value: 'stomach', label: 'მუცელზე', icon: '🙇', desc: 'მუცელზე მწოლიარე' },
+      { value: 'mixed', label: 'შერეული', icon: '🔄', desc: 'პოზიციას ვიცვლი' },
+    ],
+  },
+  {
+    key: 'firmness' as const,
+    question: 'რა სიმტკიცეს ანიჭებ უპირატესობას?',
+    subtitle: 'შენი კომფორტის პრეფერენცია',
+    options: [
+      { value: 'soft', label: 'რბილი', icon: '☁️', desc: 'ჩაეფლობა სხეული' },
+      { value: 'medium', label: 'საშუალო', icon: '⚖️', desc: 'ბალანსი კომფორტსა და მხარდაჭერას შორის' },
+      { value: 'firm', label: 'მაგარი', icon: '🪨', desc: 'მტკიცე ზედაპირი' },
+      { value: 'unsure', label: 'არ ვიცი', icon: '🤔', desc: 'დამეხმარეთ არჩევაში' },
+    ],
+  },
+  {
+    key: 'bodyWeight' as const,
+    question: 'რა არის შენი სხეულის წონა?',
+    subtitle: 'ეს გვეხმარება სწორი მხარდაჭერის შერჩევაში',
+    options: [
+      { value: 'light', label: '60 კგ-მდე', icon: '🪶', desc: 'მსუბუქი' },
+      { value: 'medium', label: '60-90 კგ', icon: '👤', desc: 'საშუალო' },
+      { value: 'heavy', label: '90 კგ+', icon: '💪', desc: 'მძიმე' },
+    ],
+  },
+  {
+    key: 'issue' as const,
+    question: 'რა პრობლემა გაწუხებს ძილისას?',
+    subtitle: 'აირჩიე ყველაზე აქტუალური',
+    options: [
+      { value: 'back-pain', label: 'ზურგის ტკივილი', icon: '🩺', desc: 'ტკივილი ზურგში ან წელში' },
+      { value: 'hot', label: 'ცხელა', icon: '🌡️', desc: 'ცხელა ძილისას' },
+      { value: 'partner', label: 'პარტნიორის მოძრაობა', icon: '👥', desc: 'პარტნიორი მაღვიძებს' },
+      { value: 'none', label: 'არაფერი', icon: '✅', desc: 'პრობლემა არ მაქვს' },
+    ],
+  },
+  {
+    key: 'budget' as const,
+    question: 'რა ბიუჯეტი გაქვს?',
+    subtitle: 'შეარჩიე შენთვის შესაფერისი ფასის დიაპაზონი',
+    options: [
+      { value: 'low', label: '1500₾-მდე', icon: '💰', desc: 'ეკონომიური' },
+      { value: 'mid', label: '1500-2500₾', icon: '💎', desc: 'საშუალო კლასი' },
+      { value: 'high', label: '2500₾+', icon: '👑', desc: 'პრემიუმ' },
+    ],
+  },
+]
+
+function getQuizResults(answers: QuizAnswer): Product[] {
+  return allProducts
+    .filter((p) => p.category === 'beds')
+    .sort((a, b) => {
+      let scoreA = 0
+      let scoreB = 0
+
+      if (answers.budget === 'low') {
+        if (a.price <= 1500) scoreA += 3
+        if (b.price <= 1500) scoreB += 3
+      } else if (answers.budget === 'mid') {
+        if (a.price > 1500 && a.price <= 2500) scoreA += 3
+        if (b.price > 1500 && b.price <= 2500) scoreB += 3
+      } else {
+        if (a.price > 2500) scoreA += 3
+        if (b.price > 2500) scoreB += 3
+      }
+
+      if (a.tag === 'ბესტსელერი') scoreA += 2
+      if (b.tag === 'ბესტსელერი') scoreB += 2
+      if (a.originalPrice) scoreA += 1
+      if (b.originalPrice) scoreB += 1
+
+      return scoreB - scoreA
+    })
+    .slice(0, 3)
+}
+
+function MattressQuizPage() {
+  const [step, setStep] = useState(0)
+  const [answers, setAnswers] = useState<Partial<QuizAnswer>>({})
+  const [showResults, setShowResults] = useState(false)
+
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
+  const currentStep = quizSteps[step]
+  const progress = ((step + 1) / quizSteps.length) * 100
+
+  const handleSelect = (value: string) => {
+    const newAnswers = { ...answers, [currentStep.key]: value }
+    setAnswers(newAnswers)
+
+    if (step < quizSteps.length - 1) {
+      setStep(step + 1)
+    } else {
+      setShowResults(true)
+    }
+  }
+
+  const handleBack = () => {
+    if (step > 0) setStep(step - 1)
+  }
+
+  const handleRestart = () => {
+    setStep(0)
+    setAnswers({})
+    setShowResults(false)
+    window.scrollTo(0, 0)
+  }
+
+  const results = showResults ? getQuizResults(answers as QuizAnswer) : []
+
+  return (
+    <section className="quiz-page">
+      <div className="quiz-hero">
+        <div className="container">
+          <span className="section-tag">ქვიზი</span>
+          <h1>იპოვე შენი იდეალური საწოლი</h1>
+          <p>უპასუხე 5 კითხვას და ჩვენ შეგარჩევთ საუკეთესო ვარიანტს</p>
+        </div>
+      </div>
+
+      <div className="container quiz-container">
+        {!showResults ? (
+          <>
+            {/* Progress */}
+            <div className="quiz-progress">
+              <div className="quiz-progress-bar">
+                <div className="quiz-progress-fill" style={{ width: `${progress}%` }} />
+              </div>
+              <span className="quiz-step-label">ნაბიჯი {step + 1} / {quizSteps.length}</span>
+            </div>
+
+            {/* Question */}
+            <div className="quiz-question-card">
+              <h2 className="quiz-question">{currentStep.question}</h2>
+              <p className="quiz-subtitle">{currentStep.subtitle}</p>
+
+              <div className="quiz-options">
+                {currentStep.options.map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={`quiz-option ${answers[currentStep.key] === opt.value ? 'selected' : ''}`}
+                    onClick={() => handleSelect(opt.value)}
+                  >
+                    <span className="quiz-option-icon">{opt.icon}</span>
+                    <span className="quiz-option-label">{opt.label}</span>
+                    <span className="quiz-option-desc">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
+
+              {step > 0 && (
+                <button className="quiz-back-btn" onClick={handleBack}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                  </svg>
+                  წინა კითხვა
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          /* Results */
+          <div className="quiz-results">
+            <div className="quiz-results-header">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <h2>შენი რეკომენდაციები</h2>
+              <p>შენი პასუხების საფუძველზე, ეს საწოლები საუკეთესოდ მოგერგება</p>
+            </div>
+
+            <div className="quiz-results-grid">
+              {results.map((product, i) => (
+                <div key={product.id} className="quiz-result-card">
+                  {i === 0 && <span className="quiz-best-match">საუკეთესო შესაბამისობა</span>}
+                  <div className="quiz-result-image">
+                    <img src={product.image} alt={product.name} />
+                  </div>
+                  <div className="quiz-result-info">
+                    <h3>{product.name}</h3>
+                    <p>{product.description}</p>
+                    <div className="quiz-result-specs">
+                      <span>{product.dimensions}</span>
+                      <span>{product.material}</span>
+                    </div>
+                    <div className="quiz-result-footer">
+                      <div className="product-pricing">
+                        <span className="product-price">₾{product.price}</span>
+                        {product.originalPrice && (
+                          <span className="product-original">₾{product.originalPrice}</span>
+                        )}
+                      </div>
+                      <Link to={`/product/${product.id}`} className="btn btn-primary btn-sm">
+                        დეტალურად
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="quiz-results-actions">
+              <button className="btn btn-outline" onClick={handleRestart}>
+                თავიდან დაწყება
+              </button>
+              <Link to="/category/beds" className="btn btn-primary">
+                ყველა საწოლის ნახვა
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 /* ── Home Page ───────────────────────────────────── */
 function HomePage() {
   return (
     <>
       <HeroSlider />
       <CategoriesSection />
+      <div className="quiz-cta">
+        <div className="container quiz-cta-inner">
+          <div className="quiz-cta-text">
+            <span className="quiz-cta-icon">🛏️</span>
+            <div>
+              <h3>ვერ ირჩევ საწოლს?</h3>
+              <p>უპასუხე 5 კითხვას და იპოვე შენი იდეალური საწოლი</p>
+            </div>
+          </div>
+          <Link to="/quiz" className="btn btn-primary">ქვიზის დაწყება</Link>
+        </div>
+      </div>
       <FeaturedProducts />
     </>
   )
@@ -1395,7 +1641,7 @@ function Layout() {
       <Outlet />
       <Footer />
       <a
-        href="https://wa.me/995555555555"
+        href="https://wa.me/995568222234"
         target="_blank"
         rel="noopener noreferrer"
         className="whatsapp-float"
@@ -1607,6 +1853,7 @@ export const routes: RouteObject[] = [
       { path: '/cart', element: <CartPage /> },
       { path: '/about', element: <AboutPage /> },
       { path: '/business', element: <BusinessPage /> },
+      { path: '/quiz', element: <MattressQuizPage /> },
     ],
   },
 ]
