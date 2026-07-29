@@ -22,6 +22,26 @@ type Product = {
   color: string
 }
 
+type Category = {
+  id: number
+  slug: string
+  name: string
+  image: string
+  count: number
+  description: string
+}
+
+type HeroSlide = {
+  id: number
+  title: string
+  subtitle: string
+  description: string
+  image: string
+  buttonText: string
+  buttonLink: string
+  accent: string
+}
+
 const categoryIcons: Record<string, ReactNode> = {
   chairs: (
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -63,7 +83,7 @@ const categoryIcons: Record<string, ReactNode> = {
   ),
 }
 
-const categories = [
+const defaultCategories: Category[] = [
   {
     id: 1,
     slug: 'chairs',
@@ -98,7 +118,7 @@ const categories = [
   },
 ]
 
-const allProducts: Product[] = [
+const defaultProducts: Product[] = [
   // ── სამისხდომო ──
   {
     id: 1,
@@ -484,6 +504,7 @@ function Navbar() {
           <a href="#categories" onClick={(e) => { e.preventDefault(); scrollToSection('categories') }}>კატეგორიები</a>
           <Link to="/about">ჩვენ შესახებ</Link>
           <a href="#contact" onClick={(e) => { e.preventDefault(); scrollToSection('contact') }}>კონტაქტი</a>
+          <Link to="/admin" className="nav-admin-link">ადმინ პანელი</Link>
         </nav>
         <div className="nav-actions">
           <button className="icon-btn" aria-label="ძებნა">
@@ -527,7 +548,7 @@ function Navbar() {
 }
 
 /* ── Hero Slider ─────────────────────────────────── */
-const heroSlides = [
+const defaultHeroSlides: HeroSlide[] = [
   {
     id: 1,
     title: 'ზაფხულის ფასდაკლება',
@@ -550,20 +571,135 @@ const heroSlides = [
   },
 ]
 
+/* ══════════════════════════════════════════════════
+   DATA CONTEXT (Admin-managed categories & slides)
+   ══════════════════════════════════════════════════ */
+
+type DataContextType = {
+  categories: Category[]
+  heroSlides: HeroSlide[]
+  products: Product[]
+  addCategory: (cat: Omit<Category, 'id'>) => void
+  updateCategory: (id: number, cat: Partial<Category>) => void
+  removeCategory: (id: number) => void
+  addSlide: (slide: Omit<HeroSlide, 'id'>) => void
+  removeSlide: (id: number) => void
+  addProduct: (product: Omit<Product, 'id'>) => void
+  updateProduct: (id: number, product: Partial<Product>) => void
+  removeProduct: (id: number) => void
+}
+
+const DataContext = createContext<DataContextType | null>(null)
+
+function useData() {
+  const ctx = useContext(DataContext)
+  if (!ctx) throw new Error('useData must be used within DataProvider')
+  return ctx
+}
+
+function DataProvider({ children }: { children: React.ReactNode }) {
+  const [categories, setCategories] = useState<Category[]>(() => {
+    try {
+      const saved = localStorage.getItem('taika-categories')
+      return saved ? JSON.parse(saved) : defaultCategories
+    } catch {
+      return defaultCategories
+    }
+  })
+
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(() => {
+    try {
+      const saved = localStorage.getItem('taika-slides')
+      return saved ? JSON.parse(saved) : defaultHeroSlides
+    } catch {
+      return defaultHeroSlides
+    }
+  })
+
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('taika-products')
+      return saved ? JSON.parse(saved) : defaultProducts
+    } catch {
+      return defaultProducts
+    }
+  })
+
+  useEffect(() => {
+    localStorage.setItem('taika-categories', JSON.stringify(categories))
+  }, [categories])
+
+  useEffect(() => {
+    localStorage.setItem('taika-slides', JSON.stringify(heroSlides))
+  }, [heroSlides])
+
+  useEffect(() => {
+    localStorage.setItem('taika-products', JSON.stringify(products))
+  }, [products])
+
+  const addCategory = useCallback((cat: Omit<Category, 'id'>) => {
+    setCategories(prev => [...prev, { ...cat, id: Date.now() }])
+  }, [])
+
+  const updateCategory = useCallback((id: number, updates: Partial<Category>) => {
+    setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c))
+  }, [])
+
+  const removeCategory = useCallback((id: number) => {
+    setCategories(prev => prev.filter(c => c.id !== id))
+  }, [])
+
+  const addSlide = useCallback((slide: Omit<HeroSlide, 'id'>) => {
+    setHeroSlides(prev => [...prev, { ...slide, id: Date.now() }])
+  }, [])
+
+  const removeSlide = useCallback((id: number) => {
+    setHeroSlides(prev => prev.filter(s => s.id !== id))
+  }, [])
+
+  const addProduct = useCallback((product: Omit<Product, 'id'>) => {
+    setProducts(prev => [...prev, { ...product, id: Date.now() }])
+  }, [])
+
+  const updateProduct = useCallback((id: number, updates: Partial<Product>) => {
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
+  }, [])
+
+  const removeProduct = useCallback((id: number) => {
+    setProducts(prev => prev.filter(p => p.id !== id))
+  }, [])
+
+  return (
+    <DataContext.Provider value={{ categories, heroSlides, products, addCategory, updateCategory, removeCategory, addSlide, removeSlide, addProduct, updateProduct, removeProduct }}>
+      {children}
+    </DataContext.Provider>
+  )
+}
+
 function HeroSlider() {
+  const { heroSlides } = useData()
   const [current, setCurrent] = useState(0)
   const [paused, setPaused] = useState(false)
 
-  const next = useCallback(() => setCurrent((c) => (c + 1) % heroSlides.length), [])
-  const prev = useCallback(() => setCurrent((c) => (c - 1 + heroSlides.length) % heroSlides.length), [])
+  const next = useCallback(() => setCurrent((c) => (c + 1) % heroSlides.length), [heroSlides.length])
+  const prev = useCallback(() => setCurrent((c) => (c - 1 + heroSlides.length) % heroSlides.length), [heroSlides.length])
 
   useEffect(() => {
-    if (paused) return
+    if (paused || heroSlides.length === 0) return
     const timer = setInterval(next, 5000)
     return () => clearInterval(timer)
-  }, [paused, next])
+  }, [paused, next, heroSlides.length])
 
-  const slide = heroSlides[current]
+  if (heroSlides.length === 0) {
+    return (
+      <section className="hero-slider" style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-dark)' }}>
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18 }}>სლაიდები არ არის დამატებული</p>
+      </section>
+    )
+  }
+
+  const safeIndex = current < heroSlides.length ? current : 0
+  const slide = heroSlides[safeIndex]
 
   return (
     <section
@@ -577,7 +713,7 @@ function HeroSlider() {
             key={s.id}
             src={s.image}
             alt={s.title}
-            className={`hero-slider-img ${i === current ? 'active' : ''}`}
+            className={`hero-slider-img ${i === safeIndex ? 'active' : ''}`}
           />
         ))}
         <div className="hero-slider-overlay" />
@@ -605,7 +741,7 @@ function HeroSlider() {
             {heroSlides.map((_, i) => (
               <button
                 key={i}
-                className={`hero-slider-dot ${i === current ? 'active' : ''}`}
+                className={`hero-slider-dot ${i === safeIndex ? 'active' : ''}`}
                 onClick={() => setCurrent(i)}
                 aria-label={`სლაიდი ${i + 1}`}
               />
@@ -624,6 +760,7 @@ function HeroSlider() {
 
 /* ── Categories (Home) ──────────────────────────── */
 function CategoriesSection() {
+  const { categories } = useData()
   return (
     <section className="categories" id="categories">
       <div className="container">
@@ -700,7 +837,8 @@ function ProductCard({ product }: { product: Product }) {
 
 /* ── Featured Products (Home) ───────────────────── */
 function FeaturedProducts() {
-  const featured = allProducts.filter(p => p.tag).slice(0, 8)
+  const { products } = useData()
+  const featured = products.filter(p => p.tag).slice(0, 8)
   return (
     <section className="featured-products" id="products">
       <div className="container">
@@ -1092,8 +1230,8 @@ const quizSteps = [
   },
 ]
 
-function getQuizResults(answers: QuizAnswer): Product[] {
-  return allProducts
+function getQuizResults(answers: QuizAnswer, productsList: Product[]): Product[] {
+  return productsList
     .filter((p) => p.category === 'beds')
     .sort((a, b) => {
       let scoreA = 0
@@ -1121,6 +1259,7 @@ function getQuizResults(answers: QuizAnswer): Product[] {
 }
 
 function MattressQuizPage() {
+  const { products } = useData()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Partial<QuizAnswer>>({})
   const [showResults, setShowResults] = useState(false)
@@ -1152,7 +1291,7 @@ function MattressQuizPage() {
     window.scrollTo(0, 0)
   }
 
-  const results = showResults ? getQuizResults(answers as QuizAnswer) : []
+  const results = showResults ? getQuizResults(answers as QuizAnswer, products) : []
 
   return (
     <section className="quiz-page">
@@ -1269,19 +1408,349 @@ function HomePage() {
       <HeroSlider />
       <CategoriesSection />
       <div className="quiz-cta">
-        <div className="container quiz-cta-inner">
-          <div className="quiz-cta-text">
-            <span className="quiz-cta-icon">🛏️</span>
-            <div>
-              <h3>ვერ ირჩევ საწოლს?</h3>
-              <p>უპასუხე 5 კითხვას და იპოვე შენი იდეალური საწოლი</p>
+        <div className="container">
+          <div className="quiz-cta-inner">
+            <div className="quiz-cta-visual">
+              <span className="quiz-cta-icon">🛏️</span>
+              <div className="quiz-cta-dots">
+                <span /><span /><span />
+              </div>
+            </div>
+            <div className="quiz-cta-content">
+              <span className="quiz-cta-badge">ინტერაქტიული ქვიზი</span>
+              <h2>ვერ ირჩევ საწოლს?</h2>
+              <p>უპასუხე სულ რაღაც <strong>5 მარტივ კითხვას</strong> და ჩვენი ალგორითმი შეგარჩევს შენთვის იდეალურ საწოლს — ძილის პოზის, სხეულის წონისა და ბიუჯეტის გათვალისწინებით.</p>
+              <div className="quiz-cta-features">
+                <div className="quiz-cta-feat">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                  <span>1 წუთი</span>
+                </div>
+                <div className="quiz-cta-feat">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+                  <span>პერსონალური შედეგი</span>
+                </div>
+                <div className="quiz-cta-feat">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
+                  <span>ყველა ბიუჯეტი</span>
+                </div>
+              </div>
+              <Link to="/quiz" className="btn btn-primary quiz-cta-btn">
+                ქვიზის დაწყება
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+              </Link>
             </div>
           </div>
-          <Link to="/quiz" className="btn btn-primary">ქვიზის დაწყება</Link>
+        </div>
+      </div>
+      <div className="mattress-cta">
+        <div className="container">
+          <div className="quiz-cta-inner">
+            <div className="quiz-cta-visual">
+              <span className="quiz-cta-icon">🛏️</span>
+              <div className="quiz-cta-dots">
+                <span /><span /><span />
+              </div>
+            </div>
+            <div className="quiz-cta-content">
+              <span className="quiz-cta-badge">კონფიგურატორი</span>
+              <h2>ააწყვე შენი იდეალური მატრასი</h2>
+              <p>აირჩიე ზომა, მასალა, სიმტკიცე და გარსაცმი — შექმენი <strong>ზუსტად შენზე მორგებული</strong> მატრასი 4 მარტივ ნაბიჯში.</p>
+              <div className="quiz-cta-features">
+                <div className="quiz-cta-feat">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /></svg>
+                  <span>6 ზომა</span>
+                </div>
+                <div className="quiz-cta-feat">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
+                  <span>5 მასალა</span>
+                </div>
+                <div className="quiz-cta-feat">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
+                  <span>₾450-დან</span>
+                </div>
+              </div>
+              <Link to="/mattress" className="btn btn-primary quiz-cta-btn">
+                აწყობის დაწყება
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
       <FeaturedProducts />
     </>
+  )
+}
+
+/* ── Mattress Builder Page ────────────────────────── */
+
+const mattressSizes = [
+  { key: '90x190', label: 'ერთადგილიანი', dims: '90 × 190 სმ', icon: '👤' },
+  { key: '120x190', label: 'ნახევარნახევარი', dims: '120 × 190 სმ', icon: '👤+' },
+  { key: '140x200', label: 'ორადგილიანი S', dims: '140 × 200 სმ', icon: '👥' },
+  { key: '160x200', label: 'ორადგილიანი M', dims: '160 × 200 სმ', icon: '👥' },
+  { key: '180x200', label: 'ორადგილიანი L', dims: '180 × 200 სმ', icon: '👫' },
+  { key: '200x200', label: 'King Size', dims: '200 × 200 სმ', icon: '👑' },
+]
+
+const mattressMaterials = [
+  { key: 'spring', label: 'ზამბარის ბლოკი', desc: 'კლასიკური მხარდაჭერა, კარგი ვენტილაცია', icon: '🔩', priceAdd: 0 },
+  { key: 'pocket', label: 'დამოუკიდებელი ზამბარები', desc: 'იზოლირებული მოძრაობა, ორთოპედიული ეფექტი', icon: '🎯', priceAdd: 200 },
+  { key: 'foam', label: 'მეხსიერების ქაფი', desc: 'სხეულის ფორმას იღებს, მაქსიმალური კომფორტი', icon: '☁️', priceAdd: 350 },
+  { key: 'latex', label: 'ლატექსი', desc: 'ბუნებრივი მასალა, ჰიპოალერგიული, გამძლე', icon: '🌿', priceAdd: 500 },
+  { key: 'hybrid', label: 'ჰიბრიდი', desc: 'ზამბარი + ქაფი — საუკეთესო ორივე სამყაროდან', icon: '⚡', priceAdd: 450 },
+]
+
+const mattressFirmness = [
+  { key: 'soft', label: 'რბილი', desc: 'გვერდზე მძინარეთათვის', level: 1 },
+  { key: 'medium', label: 'საშუალო', desc: 'უნივერსალური', level: 2 },
+  { key: 'firm', label: 'მაგარი', desc: 'ზურგზე/მუცელზე მძინარეთათვის', level: 3 },
+  { key: 'extra-firm', label: 'ძალიან მაგარი', desc: 'ორთოპედიული', level: 4 },
+]
+
+const mattressCovers = [
+  { key: 'cotton', label: 'ბამბა', icon: '🧵', priceAdd: 0 },
+  { key: 'bamboo', label: 'ბამბუკი', icon: '🎋', priceAdd: 80 },
+  { key: 'aloe', label: 'ალოე ვერა', icon: '🌱', priceAdd: 120 },
+  { key: 'cashmere', label: 'კაშმირი', icon: '✨', priceAdd: 250 },
+]
+
+function getMattressBasePrice(size: string): number {
+  const prices: Record<string, number> = {
+    '90x190': 450, '120x190': 580, '140x200': 720,
+    '160x200': 850, '180x200': 980, '200x200': 1150,
+  }
+  return prices[size] || 600
+}
+
+function MattressBuilderPage() {
+  const [step, setStep] = useState(0)
+  const [size, setSize] = useState('')
+  const [material, setMaterial] = useState('')
+  const [firmness, setFirmness] = useState('')
+  const [cover, setCover] = useState('')
+  const [showResult, setShowResult] = useState(false)
+
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
+  const steps = [
+    { title: 'ზომა', subtitle: 'აირჩიე მატრასის ზომა' },
+    { title: 'მასალა', subtitle: 'რა ტიპის მატრასი გსურს?' },
+    { title: 'სიმტკიცე', subtitle: 'რა სიმტკიცეს ანიჭებ უპირატესობას?' },
+    { title: 'გარსაცმი', subtitle: 'აირჩიე გარსაცმის მასალა' },
+  ]
+
+  const progress = ((step + 1) / steps.length) * 100
+
+  const handleSelectSize = (key: string) => { setSize(key); setStep(1) }
+  const handleSelectMaterial = (key: string) => { setMaterial(key); setStep(2) }
+  const handleSelectFirmness = (key: string) => { setFirmness(key); setStep(3) }
+  const handleSelectCover = (key: string) => { setCover(key); setShowResult(true) }
+
+  const handleBack = () => {
+    if (showResult) { setShowResult(false); return }
+    if (step > 0) setStep(step - 1)
+  }
+
+  const handleRestart = () => {
+    setStep(0); setSize(''); setMaterial(''); setFirmness(''); setCover(''); setShowResult(false)
+  }
+
+  const totalPrice = getMattressBasePrice(size)
+    + (mattressMaterials.find(m => m.key === material)?.priceAdd || 0)
+    + (mattressCovers.find(c => c.key === cover)?.priceAdd || 0)
+
+  const selectedSize = mattressSizes.find(s => s.key === size)
+  const selectedMaterial = mattressMaterials.find(m => m.key === material)
+  const selectedFirmness = mattressFirmness.find(f => f.key === firmness)
+  const selectedCover = mattressCovers.find(c => c.key === cover)
+
+  return (
+    <section className="mattress-builder-page">
+      <div className="mb-hero">
+        <div className="container">
+          <span className="section-tag">კონფიგურატორი</span>
+          <h1>ააწყვე შენი იდეალური მატრასი</h1>
+          <p>აირჩიე ზომა, მასალა, სიმტკიცე და გარსაცმი — შექმენი ზუსტად შენზე მორგებული მატრასი</p>
+        </div>
+      </div>
+
+      <div className="container mb-container">
+        <div className="mb-layout">
+          {/* ── Summary sidebar ── */}
+          <div className="mb-summary">
+            <h4>შენი კონფიგურაცია</h4>
+            <div className="mb-summary-items">
+              <div className={`mb-summary-item ${size ? 'filled' : ''}`}>
+                <span className="mb-sum-label">ზომა</span>
+                <span className="mb-sum-value">{selectedSize ? `${selectedSize.label} (${selectedSize.dims})` : '—'}</span>
+              </div>
+              <div className={`mb-summary-item ${material ? 'filled' : ''}`}>
+                <span className="mb-sum-label">მასალა</span>
+                <span className="mb-sum-value">{selectedMaterial ? selectedMaterial.label : '—'}</span>
+              </div>
+              <div className={`mb-summary-item ${firmness ? 'filled' : ''}`}>
+                <span className="mb-sum-label">სიმტკიცე</span>
+                <span className="mb-sum-value">{selectedFirmness ? selectedFirmness.label : '—'}</span>
+              </div>
+              <div className={`mb-summary-item ${cover ? 'filled' : ''}`}>
+                <span className="mb-sum-label">გარსაცმი</span>
+                <span className="mb-sum-value">{selectedCover ? selectedCover.label : '—'}</span>
+              </div>
+            </div>
+            {(size || material || cover) && (
+              <div className="mb-summary-price">
+                <span>სავარაუდო ფასი</span>
+                <strong>₾{totalPrice}</strong>
+              </div>
+            )}
+          </div>
+
+          {/* ── Step content ── */}
+          <div className="mb-steps">
+            {!showResult && (
+              <>
+                <div className="mb-progress">
+                  <div className="mb-progress-bar">
+                    <div className="mb-progress-fill" style={{ width: `${progress}%` }} />
+                  </div>
+                  <span className="mb-step-label">{steps[step].title} — ნაბიჯი {step + 1}/{steps.length}</span>
+                </div>
+
+                <div className="mb-step-header">
+                  <h3>{steps[step].subtitle}</h3>
+                </div>
+              </>
+            )}
+
+            {/* Step 0: Size */}
+            {!showResult && step === 0 && (
+              <div className="mb-options-grid cols-3">
+                {mattressSizes.map(s => (
+                  <button key={s.key} className={`mb-option ${size === s.key ? 'selected' : ''}`} onClick={() => handleSelectSize(s.key)}>
+                    <span className="mb-opt-icon">{s.icon}</span>
+                    <span className="mb-opt-label">{s.label}</span>
+                    <span className="mb-opt-desc">{s.dims}</span>
+                    <span className="mb-opt-price">₾{getMattressBasePrice(s.key)}-დან</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Step 1: Material */}
+            {!showResult && step === 1 && (
+              <div className="mb-options-grid cols-1">
+                {mattressMaterials.map(m => (
+                  <button key={m.key} className={`mb-option-row ${material === m.key ? 'selected' : ''}`} onClick={() => handleSelectMaterial(m.key)}>
+                    <span className="mb-opt-icon">{m.icon}</span>
+                    <div className="mb-opt-text">
+                      <span className="mb-opt-label">{m.label}</span>
+                      <span className="mb-opt-desc">{m.desc}</span>
+                    </div>
+                    {m.priceAdd > 0 && <span className="mb-opt-add">+₾{m.priceAdd}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Step 2: Firmness */}
+            {!showResult && step === 2 && (
+              <div className="mb-options-grid cols-4">
+                {mattressFirmness.map(f => (
+                  <button key={f.key} className={`mb-option ${firmness === f.key ? 'selected' : ''}`} onClick={() => handleSelectFirmness(f.key)}>
+                    <div className="mb-firmness-bar">
+                      {[1, 2, 3, 4].map(i => (
+                        <span key={i} className={`mb-firm-dot ${i <= f.level ? 'active' : ''}`} />
+                      ))}
+                    </div>
+                    <span className="mb-opt-label">{f.label}</span>
+                    <span className="mb-opt-desc">{f.desc}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Step 3: Cover */}
+            {!showResult && step === 3 && (
+              <div className="mb-options-grid cols-4">
+                {mattressCovers.map(c => (
+                  <button key={c.key} className={`mb-option ${cover === c.key ? 'selected' : ''}`} onClick={() => handleSelectCover(c.key)}>
+                    <span className="mb-opt-icon">{c.icon}</span>
+                    <span className="mb-opt-label">{c.label}</span>
+                    {c.priceAdd > 0 && <span className="mb-opt-add">+₾{c.priceAdd}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Result */}
+            {showResult && (
+              <div className="mb-result">
+                <div className="mb-result-header">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  <h3>შენი მატრასი მზადაა!</h3>
+                  <p>აი, შენი კონფიგურაციის შეჯამება</p>
+                </div>
+
+                <div className="mb-result-specs">
+                  <div className="mb-result-spec">
+                    <span className="mb-rs-icon">{selectedSize?.icon}</span>
+                    <div>
+                      <strong>{selectedSize?.label}</strong>
+                      <span>{selectedSize?.dims}</span>
+                    </div>
+                  </div>
+                  <div className="mb-result-spec">
+                    <span className="mb-rs-icon">{selectedMaterial?.icon}</span>
+                    <div>
+                      <strong>{selectedMaterial?.label}</strong>
+                      <span>{selectedMaterial?.desc}</span>
+                    </div>
+                  </div>
+                  <div className="mb-result-spec">
+                    <span className="mb-rs-icon">💪</span>
+                    <div>
+                      <strong>{selectedFirmness?.label}</strong>
+                      <span>{selectedFirmness?.desc}</span>
+                    </div>
+                  </div>
+                  <div className="mb-result-spec">
+                    <span className="mb-rs-icon">{selectedCover?.icon}</span>
+                    <div>
+                      <strong>{selectedCover?.label} გარსაცმი</strong>
+                      <span>მოხსნადი და ქიმწმენდადი</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-result-total">
+                  <div>
+                    <span>საბოლოო ფასი</span>
+                    <strong>₾{totalPrice}</strong>
+                  </div>
+                  <div className="mb-result-btns">
+                    <button className="btn btn-outline" onClick={handleRestart}>თავიდან აწყობა</button>
+                    <button className="btn btn-primary">შეკვეთა</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Back button */}
+            {(step > 0 || showResult) && !showResult && (
+              <button className="mb-back-btn" onClick={handleBack}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+                </svg>
+                წინა ნაბიჯი
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -1290,6 +1759,7 @@ function CategoryPage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const { toggleCart, isInCart } = useCart()
+  const { categories, products } = useData()
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc'>('default')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
@@ -1298,7 +1768,7 @@ function CategoryPage() {
   }, [slug])
 
   const category = categories.find(c => c.slug === slug)
-  const categoryProducts = allProducts.filter(p => p.category === slug)
+  const categoryProducts = products.filter(p => p.category === slug)
 
   const sortedProducts = [...categoryProducts].sort((a, b) => {
     if (sortBy === 'price-asc') return a.price - b.price
@@ -1636,22 +2106,24 @@ function CartPage() {
 
 function Layout() {
   return (
-    <CartProvider>
-      <Navbar />
-      <Outlet />
-      <Footer />
-      <a
-        href="https://wa.me/995568222234"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="whatsapp-float"
-        aria-label="WhatsApp"
-      >
+    <DataProvider>
+      <CartProvider>
+        <Navbar />
+        <Outlet />
+        <Footer />
+        <a
+          href="https://wa.me/995568222234"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="whatsapp-float"
+          aria-label="WhatsApp"
+        >
         <svg viewBox="0 0 32 32" width="28" height="28" fill="#fff">
           <path d="M16.004 0h-.008C7.174 0 0 7.176 0 16c0 3.5 1.132 6.742 3.054 9.376L1.054 31.2l6.042-1.94A15.9 15.9 0 0 0 16.004 32C24.826 32 32 24.822 32 16S24.826 0 16.004 0zm9.31 22.598c-.39 1.1-1.932 2.014-3.168 2.28-.844.18-1.946.324-5.658-1.216-4.752-1.97-7.808-6.8-8.044-7.116-.228-.316-1.912-2.548-1.912-4.86s1.21-3.448 1.64-3.92c.43-.47.938-.588 1.252-.588.314 0 .628.002.902.016.29.014.678-.11 1.06.81.392.94 1.332 3.252 1.448 3.488.118.236.196.51.04.824-.158.316-.236.512-.472.788-.236.274-.496.612-.708.822-.236.236-.482.492-.208.964.274.472 1.218 2.012 2.616 3.26 1.798 1.604 3.314 2.1 3.786 2.336.472.236.748.196 1.024-.118.274-.314 1.178-1.374 1.492-1.844.314-.472.628-.392 1.06-.236.432.158 2.742 1.294 3.212 1.53.472.236.786.354.902.55.118.196.118 1.138-.27 2.24z" />
         </svg>
       </a>
     </CartProvider>
+    </DataProvider>
   )
 }
 
@@ -1660,12 +2132,13 @@ function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toggleCart, isInCart } = useCart()
+  const { categories, products } = useData()
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [id])
 
-  const product = allProducts.find(p => p.id === Number(id))
+  const product = products.find(p => p.id === Number(id))
 
   if (!product) {
     return (
@@ -1678,7 +2151,7 @@ function ProductDetailPage() {
   }
 
   const category = categories.find(c => c.slug === product.category)
-  const relatedProducts = allProducts.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4)
+  const relatedProducts = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4)
   const inCart = isInCart(product.id)
 
   return (
@@ -1843,6 +2316,444 @@ function ProductDetailPage() {
   )
 }
 
+/* ══════════════════════════════════════════════════
+   ADMIN PAGE
+   ══════════════════════════════════════════════════ */
+
+const emptyProductForm = {
+  name: '',
+  price: 0,
+  originalPrice: undefined as number | undefined,
+  image: '',
+  tag: '',
+  category: '',
+  description: '',
+  dimensions: '',
+  material: '',
+  color: '',
+}
+
+function AdminPage() {
+  const { categories, heroSlides, products, addCategory, updateCategory, removeCategory, addSlide, removeSlide, addProduct, updateProduct, removeProduct } = useData()
+  const [activeTab, setActiveTab] = useState<'categories' | 'products' | 'slides'>('categories')
+
+  // Category form
+  const [catForm, setCatForm] = useState({ name: '', slug: '', description: '', image: '', count: 0 })
+  const [editingCatId, setEditingCatId] = useState<number | null>(null)
+
+  // Product form
+  const [prodForm, setProdForm] = useState({ ...emptyProductForm })
+  const [editingProdId, setEditingProdId] = useState<number | null>(null)
+  const [prodFilterCat, setProdFilterCat] = useState<string>('all')
+
+  // Slide form
+  const [slideForm, setSlideForm] = useState({ title: '', subtitle: '', description: '', image: '', buttonText: '', buttonLink: '', accent: '#C9A96E' })
+
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
+  // ── Category handlers ──
+  const handleCatSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!catForm.name || !catForm.slug || !catForm.image) return
+    if (editingCatId !== null) {
+      updateCategory(editingCatId, catForm)
+      setEditingCatId(null)
+    } else {
+      addCategory(catForm)
+    }
+    setCatForm({ name: '', slug: '', description: '', image: '', count: 0 })
+  }
+
+  const startEditCat = (cat: Category) => {
+    setEditingCatId(cat.id)
+    setCatForm({ name: cat.name, slug: cat.slug, description: cat.description, image: cat.image, count: cat.count })
+  }
+
+  const cancelEditCat = () => {
+    setEditingCatId(null)
+    setCatForm({ name: '', slug: '', description: '', image: '', count: 0 })
+  }
+
+  // ── Product handlers ──
+  const handleProdSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!prodForm.name || !prodForm.image || !prodForm.category) return
+    const data = {
+      ...prodForm,
+      price: Number(prodForm.price),
+      originalPrice: prodForm.originalPrice ? Number(prodForm.originalPrice) : undefined,
+      tag: prodForm.tag || undefined,
+    }
+    if (editingProdId !== null) {
+      updateProduct(editingProdId, data)
+      setEditingProdId(null)
+    } else {
+      addProduct(data)
+    }
+    setProdForm({ ...emptyProductForm })
+  }
+
+  const startEditProd = (p: Product) => {
+    setEditingProdId(p.id)
+    setProdForm({
+      name: p.name,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      image: p.image,
+      tag: p.tag || '',
+      category: p.category,
+      description: p.description,
+      dimensions: p.dimensions,
+      material: p.material,
+      color: p.color,
+    })
+    window.scrollTo({ top: 400, behavior: 'smooth' })
+  }
+
+  const cancelEditProd = () => {
+    setEditingProdId(null)
+    setProdForm({ ...emptyProductForm })
+  }
+
+  // ── Slide handlers ──
+  const handleAddSlide = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!slideForm.title || !slideForm.image) return
+    addSlide(slideForm)
+    setSlideForm({ title: '', subtitle: '', description: '', image: '', buttonText: '', buttonLink: '', accent: '#C9A96E' })
+  }
+
+  // Filtered products
+  const filteredProducts = prodFilterCat === 'all' ? products : products.filter(p => p.category === prodFilterCat)
+
+  return (
+    <section className="admin-page">
+      <div className="admin-hero">
+        <div className="container">
+          <span className="section-tag">ადმინისტრირება</span>
+          <h1>ადმინ პანელი</h1>
+          <p>კატეგორიების, პროდუქტების და სლაიდების მართვა</p>
+        </div>
+      </div>
+
+      <div className="container admin-content">
+        {/* Tabs */}
+        <div className="admin-tabs">
+          <button className={`admin-tab ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => setActiveTab('categories')}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+            </svg>
+            კატეგორიები ({categories.length})
+          </button>
+          <button className={`admin-tab ${activeTab === 'products' ? 'active' : ''}`} onClick={() => setActiveTab('products')}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" />
+            </svg>
+            პროდუქტები ({products.length})
+          </button>
+          <button className={`admin-tab ${activeTab === 'slides' ? 'active' : ''}`} onClick={() => setActiveTab('slides')}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+            სლაიდები ({heroSlides.length})
+          </button>
+        </div>
+
+        {/* ════════════ Categories Tab ════════════ */}
+        {activeTab === 'categories' && (
+          <div className="admin-section">
+            <div className="admin-grid">
+              <div className="admin-form-card">
+                <h3>{editingCatId !== null ? 'კატეგორიის რედაქტირება' : 'ახალი კატეგორიის დამატება'}</h3>
+                <form onSubmit={handleCatSubmit}>
+                  <div className="form-group">
+                    <label htmlFor="cat-name">სახელი *</label>
+                    <input type="text" id="cat-name" value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })} placeholder="მაგ: სამისხდომო" required />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="cat-slug">Slug (URL) *</label>
+                    <input type="text" id="cat-slug" value={catForm.slug} onChange={e => setCatForm({ ...catForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} placeholder="მაგ: chairs" required />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="cat-desc">აღწერა</label>
+                    <textarea id="cat-desc" value={catForm.description} onChange={e => setCatForm({ ...catForm, description: e.target.value })} placeholder="კატეგორიის აღწერა..." rows={3} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="cat-image">ფოტოს URL *</label>
+                    <input type="url" id="cat-image" value={catForm.image} onChange={e => setCatForm({ ...catForm, image: e.target.value })} placeholder="https://..." required />
+                  </div>
+                  {catForm.image && (
+                    <div className="admin-preview-image"><img src={catForm.image} alt="Preview" /></div>
+                  )}
+                  <div className="form-group">
+                    <label htmlFor="cat-count">ნივთების რაოდენობა</label>
+                    <input type="number" id="cat-count" value={catForm.count} onChange={e => setCatForm({ ...catForm, count: parseInt(e.target.value) || 0 })} min={0} />
+                  </div>
+                  <div className="admin-form-actions">
+                    <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                      {editingCatId !== null ? 'შენახვა' : 'დამატება'}
+                    </button>
+                    {editingCatId !== null && (
+                      <button type="button" className="btn btn-outline" onClick={cancelEditCat}>გაუქმება</button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              <div className="admin-list">
+                <h3>არსებული კატეგორიები</h3>
+                {categories.length === 0 ? (
+                  <div className="admin-empty"><p>კატეგორიები არ არის დამატებული</p></div>
+                ) : (
+                  <div className="admin-items">
+                    {categories.map(cat => (
+                      <div key={cat.id} className={`admin-item ${editingCatId === cat.id ? 'editing' : ''}`}>
+                        <div className="admin-item-image">
+                          <img src={cat.image} alt={cat.name} />
+                        </div>
+                        <div className="admin-item-info">
+                          <h4>{cat.name}</h4>
+                          <span className="admin-item-slug">/{cat.slug}</span>
+                          <p>{cat.description}</p>
+                          <span className="admin-item-count">{cat.count} ნივთი · {products.filter(p => p.category === cat.slug).length} პროდუქტი</span>
+                        </div>
+                        <div className="admin-item-actions">
+                          <button className="admin-edit-btn" onClick={() => startEditCat(cat)} aria-label="რედაქტირება">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                          <button className="admin-delete-btn" onClick={() => removeCategory(cat.id)} aria-label="წაშლა">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════ Products Tab ════════════ */}
+        {activeTab === 'products' && (
+          <div className="admin-section">
+            <div className="admin-grid">
+              <div className="admin-form-card">
+                <h3>{editingProdId !== null ? 'პროდუქტის რედაქტირება' : 'ახალი პროდუქტის დამატება'}</h3>
+                <form onSubmit={handleProdSubmit}>
+                  <div className="form-group">
+                    <label htmlFor="prod-name">სახელი *</label>
+                    <input type="text" id="prod-name" value={prodForm.name} onChange={e => setProdForm({ ...prodForm, name: e.target.value })} placeholder="პროდუქტის სახელი" required />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="prod-category">კატეგორია *</label>
+                    <select id="prod-category" value={prodForm.category} onChange={e => setProdForm({ ...prodForm, category: e.target.value })} required className="sort-select" style={{ width: '100%' }}>
+                      <option value="">აირჩიეთ კატეგორია</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.slug}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="prod-price">ფასი (₾) *</label>
+                      <input type="number" id="prod-price" value={prodForm.price || ''} onChange={e => setProdForm({ ...prodForm, price: Number(e.target.value) })} placeholder="0" min={0} required />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="prod-original-price">ძველი ფასი (₾)</label>
+                      <input type="number" id="prod-original-price" value={prodForm.originalPrice ?? ''} onChange={e => setProdForm({ ...prodForm, originalPrice: e.target.value ? Number(e.target.value) : undefined })} placeholder="არასავალდებულო" min={0} />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="prod-image">ფოტოს URL *</label>
+                    <input type="url" id="prod-image" value={prodForm.image} onChange={e => setProdForm({ ...prodForm, image: e.target.value })} placeholder="https://..." required />
+                  </div>
+                  {prodForm.image && (
+                    <div className="admin-preview-image"><img src={prodForm.image} alt="Preview" /></div>
+                  )}
+                  <div className="form-group">
+                    <label htmlFor="prod-tag">თეგი</label>
+                    <select id="prod-tag" value={prodForm.tag} onChange={e => setProdForm({ ...prodForm, tag: e.target.value })} className="sort-select" style={{ width: '100%' }}>
+                      <option value="">თეგის გარეშე</option>
+                      <option value="ახალი">ახალი</option>
+                      <option value="ბესტსელერი">ბესტსელერი</option>
+                      <option value="ფასდაკლება">ფასდაკლება</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="prod-desc">აღწერა</label>
+                    <textarea id="prod-desc" value={prodForm.description} onChange={e => setProdForm({ ...prodForm, description: e.target.value })} placeholder="პროდუქტის აღწერა..." rows={3} />
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="prod-dims">ზომები</label>
+                      <input type="text" id="prod-dims" value={prodForm.dimensions} onChange={e => setProdForm({ ...prodForm, dimensions: e.target.value })} placeholder="მაგ: 75 × 80 × 105 სმ" />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="prod-color">ფერი</label>
+                      <input type="text" id="prod-color" value={prodForm.color} onChange={e => setProdForm({ ...prodForm, color: e.target.value })} placeholder="მაგ: ნაცრისფერი" />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="prod-material">მასალა</label>
+                    <input type="text" id="prod-material" value={prodForm.material} onChange={e => setProdForm({ ...prodForm, material: e.target.value })} placeholder="მაგ: მუხის ხე, ბამბის ქსოვილი" />
+                  </div>
+                  <div className="admin-form-actions">
+                    <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                      {editingProdId !== null ? 'შენახვა' : 'დამატება'}
+                    </button>
+                    {editingProdId !== null && (
+                      <button type="button" className="btn btn-outline" onClick={cancelEditProd}>გაუქმება</button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              <div className="admin-list">
+                <div className="admin-list-header">
+                  <h3>პროდუქტები</h3>
+                  <select className="sort-select" value={prodFilterCat} onChange={e => setProdFilterCat(e.target.value)}>
+                    <option value="all">ყველა კატეგორია</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.slug}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {filteredProducts.length === 0 ? (
+                  <div className="admin-empty"><p>პროდუქტები არ არის</p></div>
+                ) : (
+                  <div className="admin-items">
+                    {filteredProducts.map(prod => (
+                      <div key={prod.id} className={`admin-item ${editingProdId === prod.id ? 'editing' : ''}`}>
+                        <div className="admin-item-image">
+                          <img src={prod.image} alt={prod.name} />
+                          {prod.tag && <span className={`admin-prod-tag tag-${prod.tag === 'ფასდაკლება' ? 'sale' : prod.tag === 'ბესტსელერი' ? 'best' : 'new'}`}>{prod.tag}</span>}
+                        </div>
+                        <div className="admin-item-info">
+                          <h4>{prod.name}</h4>
+                          <div className="admin-prod-meta">
+                            <span className="admin-prod-price">₾{prod.price}</span>
+                            {prod.originalPrice && <span className="admin-prod-old-price">₾{prod.originalPrice}</span>}
+                            <span className="admin-item-slug">{categories.find(c => c.slug === prod.category)?.name || prod.category}</span>
+                          </div>
+                          <p>{prod.description}</p>
+                          {prod.dimensions && <span className="admin-item-count">{prod.dimensions} · {prod.material} · {prod.color}</span>}
+                        </div>
+                        <div className="admin-item-actions">
+                          <button className="admin-edit-btn" onClick={() => startEditProd(prod)} aria-label="რედაქტირება">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                          <button className="admin-delete-btn" onClick={() => removeProduct(prod.id)} aria-label="წაშლა">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ════════════ Slides Tab ════════════ */}
+        {activeTab === 'slides' && (
+          <div className="admin-section">
+            <div className="admin-grid">
+              <div className="admin-form-card">
+                <h3>ახალი სლაიდის დამატება</h3>
+                <form onSubmit={handleAddSlide}>
+                  <div className="form-group">
+                    <label htmlFor="slide-title">სათაური *</label>
+                    <input type="text" id="slide-title" value={slideForm.title} onChange={e => setSlideForm({ ...slideForm, title: e.target.value })} placeholder="მაგ: ზაფხულის ფასდაკლება" required />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="slide-subtitle">ქვესათაური</label>
+                    <input type="text" id="slide-subtitle" value={slideForm.subtitle} onChange={e => setSlideForm({ ...slideForm, subtitle: e.target.value })} placeholder="მაგ: ყველა სავარძელზე -30%" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="slide-desc">აღწერა</label>
+                    <textarea id="slide-desc" value={slideForm.description} onChange={e => setSlideForm({ ...slideForm, description: e.target.value })} placeholder="სლაიდის აღწერა..." rows={3} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="slide-image">ფოტოს URL *</label>
+                    <input type="url" id="slide-image" value={slideForm.image} onChange={e => setSlideForm({ ...slideForm, image: e.target.value })} placeholder="https://..." required />
+                  </div>
+                  {slideForm.image && (
+                    <div className="admin-preview-image wide"><img src={slideForm.image} alt="Preview" /></div>
+                  )}
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="slide-btn-text">ღილაკის ტექსტი</label>
+                      <input type="text" id="slide-btn-text" value={slideForm.buttonText} onChange={e => setSlideForm({ ...slideForm, buttonText: e.target.value })} placeholder="მაგ: აქციის ნახვა" />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="slide-btn-link">ღილაკის ბმული</label>
+                      <input type="text" id="slide-btn-link" value={slideForm.buttonLink} onChange={e => setSlideForm({ ...slideForm, buttonLink: e.target.value })} placeholder="მაგ: /category/chairs" />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="slide-accent">აქცენტის ფერი</label>
+                    <div className="color-picker-row">
+                      <input type="color" id="slide-accent" value={slideForm.accent} onChange={e => setSlideForm({ ...slideForm, accent: e.target.value })} />
+                      <span>{slideForm.accent}</span>
+                    </div>
+                  </div>
+                  <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>სლაიდის დამატება</button>
+                </form>
+              </div>
+
+              <div className="admin-list">
+                <h3>არსებული სლაიდები</h3>
+                {heroSlides.length === 0 ? (
+                  <div className="admin-empty"><p>სლაიდები არ არის დამატებული</p></div>
+                ) : (
+                  <div className="admin-items">
+                    {heroSlides.map(slide => (
+                      <div key={slide.id} className="admin-item slide-item">
+                        <div className="admin-item-image wide">
+                          <img src={slide.image} alt={slide.title} />
+                          <span className="admin-slide-accent" style={{ background: slide.accent }} />
+                        </div>
+                        <div className="admin-item-info">
+                          <h4>{slide.title}</h4>
+                          <span className="admin-item-slug">{slide.subtitle}</span>
+                          <p>{slide.description}</p>
+                          {slide.buttonText && <span className="admin-item-count">{slide.buttonText} → {slide.buttonLink}</span>}
+                        </div>
+                        <div className="admin-item-actions">
+                          <button className="admin-delete-btn" onClick={() => removeSlide(slide.id)} aria-label="წაშლა">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 export const routes: RouteObject[] = [
   {
     element: <Layout />,
@@ -1854,6 +2765,8 @@ export const routes: RouteObject[] = [
       { path: '/about', element: <AboutPage /> },
       { path: '/business', element: <BusinessPage /> },
       { path: '/quiz', element: <MattressQuizPage /> },
+      { path: '/mattress', element: <MattressBuilderPage /> },
+      { path: '/admin', element: <AdminPage /> },
     ],
   },
 ]
