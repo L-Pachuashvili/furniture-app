@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 import type { ReactNode } from 'react'
-import { Link, useParams, useNavigate, useLocation, Outlet } from 'react-router-dom'
+import { Link, useParams, useNavigate, useLocation, Outlet, Navigate } from 'react-router-dom'
 import type { RouteObject } from 'react-router-dom'
+import { categoriesApi, productsApi, heroSlidesApi, businessInquiriesApi, uploadApi, ordersApi, authApi } from './api'
+import type { CategoryResponse, ProductResponse, HeroSlideResponse } from './api'
 import './App.css'
 
 /* ══════════════════════════════════════════════════
@@ -9,7 +11,7 @@ import './App.css'
    ══════════════════════════════════════════════════ */
 
 type Product = {
-  id: number
+  id: string
   name: string
   price: number
   originalPrice?: number
@@ -23,16 +25,17 @@ type Product = {
 }
 
 type Category = {
-  id: number
+  id: string
   slug: string
   name: string
   image: string
+  icon?: string
   count: number
   description: string
 }
 
 type HeroSlide = {
-  id: number
+  id: string
   title: string
   subtitle: string
   description: string
@@ -402,10 +405,10 @@ type CartItem = {
 type CartContextType = {
   items: CartItem[]
   toggleCart: (product: Product) => void
-  removeFromCart: (productId: number) => void
-  updateQuantity: (productId: number, quantity: number) => void
+  removeFromCart: (productId: string) => void
+  updateQuantity: (productId: string, quantity: number) => void
   clearCart: () => void
-  isInCart: (productId: number) => boolean
+  isInCart: (productId: string) => boolean
   totalItems: number
   totalPrice: number
 }
@@ -442,11 +445,11 @@ function CartProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  const removeFromCart = useCallback((productId: number) => {
+  const removeFromCart = useCallback((productId: string) => {
     setItems(prev => prev.filter(item => item.product.id !== productId))
   }, [])
 
-  const updateQuantity = useCallback((productId: number, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number) => {
     if (quantity <= 0) {
       setItems(prev => prev.filter(item => item.product.id !== productId))
       return
@@ -460,7 +463,7 @@ function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = useCallback(() => setItems([]), [])
 
-  const isInCart = useCallback((productId: number) => {
+  const isInCart = useCallback((productId: string) => {
     return items.some(item => item.product.id === productId)
   }, [items])
 
@@ -504,7 +507,6 @@ function Navbar() {
           <a href="#categories" onClick={(e) => { e.preventDefault(); scrollToSection('categories') }}>კატეგორიები</a>
           <Link to="/about">ჩვენ შესახებ</Link>
           <a href="#contact" onClick={(e) => { e.preventDefault(); scrollToSection('contact') }}>კონტაქტი</a>
-          <Link to="/admin" className="nav-admin-link">ადმინ პანელი</Link>
         </nav>
         <div className="nav-actions">
           <button className="icon-btn" aria-label="ძებნა">
@@ -579,14 +581,15 @@ type DataContextType = {
   categories: Category[]
   heroSlides: HeroSlide[]
   products: Product[]
+  loading: boolean
   addCategory: (cat: Omit<Category, 'id'>) => void
-  updateCategory: (id: number, cat: Partial<Category>) => void
-  removeCategory: (id: number) => void
+  updateCategory: (id: string, cat: Partial<Category>) => void
+  removeCategory: (id: string) => void
   addSlide: (slide: Omit<HeroSlide, 'id'>) => void
-  removeSlide: (id: number) => void
+  removeSlide: (id: string) => void
   addProduct: (product: Omit<Product, 'id'>) => void
-  updateProduct: (id: number, product: Partial<Product>) => void
-  removeProduct: (id: number) => void
+  updateProduct: (id: string, product: Partial<Product>) => void
+  removeProduct: (id: string) => void
 }
 
 const DataContext = createContext<DataContextType | null>(null)
@@ -598,79 +601,101 @@ function useData() {
 }
 
 function DataProvider({ children }: { children: React.ReactNode }) {
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const saved = localStorage.getItem('taika-categories')
-      return saved ? JSON.parse(saved) : defaultCategories
-    } catch {
-      return defaultCategories
-    }
-  })
-
-  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(() => {
-    try {
-      const saved = localStorage.getItem('taika-slides')
-      return saved ? JSON.parse(saved) : defaultHeroSlides
-    } catch {
-      return defaultHeroSlides
-    }
-  })
-
-  const [products, setProducts] = useState<Product[]>(() => {
-    try {
-      const saved = localStorage.getItem('taika-products')
-      return saved ? JSON.parse(saved) : defaultProducts
-    } catch {
-      return defaultProducts
-    }
-  })
+  const [categories, setCategories] = useState<Category[]>([])
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    localStorage.setItem('taika-categories', JSON.stringify(categories))
-  }, [categories])
-
-  useEffect(() => {
-    localStorage.setItem('taika-slides', JSON.stringify(heroSlides))
-  }, [heroSlides])
-
-  useEffect(() => {
-    localStorage.setItem('taika-products', JSON.stringify(products))
-  }, [products])
+    Promise.all([
+      categoriesApi.getAll(),
+      heroSlidesApi.getAll(),
+      productsApi.getAll({ pageSize: 200 }),
+    ]).then(([cats, slides, prodsPage]) => {
+      setCategories(cats.map(c => ({ ...c, id: c.id })))
+      setHeroSlides(slides.map(s => ({ ...s, id: s.id })))
+      setProducts(prodsPage.items.map(p => ({
+        ...p,
+        id: p.id,
+        originalPrice: p.originalPrice ?? undefined,
+        tag: p.tag ?? undefined,
+      })))
+    }).catch(err => {
+      console.error('Failed to load data from API:', err)
+    }).finally(() => setLoading(false))
+  }, [])
 
   const addCategory = useCallback((cat: Omit<Category, 'id'>) => {
-    setCategories(prev => [...prev, { ...cat, id: Date.now() }])
+    categoriesApi.create(cat).then(c => {
+      setCategories(prev => [...prev, c])
+    }).catch(err => console.error('Failed to add category:', err))
   }, [])
 
-  const updateCategory = useCallback((id: number, updates: Partial<Category>) => {
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c))
-  }, [])
+  const updateCategory = useCallback((id: string, updates: Partial<Category>) => {
+    const current = categories.find(c => c.id === id)
+    if (!current) return
+    const merged = { ...current, ...updates }
+    categoriesApi.update(id, { name: merged.name, slug: merged.slug, image: merged.image, icon: merged.icon, description: merged.description, count: merged.count }).then(c => {
+      setCategories(prev => prev.map(cat => cat.id === id ? c : cat))
+    }).catch(err => console.error('Failed to update category:', err))
+  }, [categories])
 
-  const removeCategory = useCallback((id: number) => {
-    setCategories(prev => prev.filter(c => c.id !== id))
+  const removeCategory = useCallback((id: string) => {
+    categoriesApi.delete(id).then(() => {
+      setCategories(prev => prev.filter(c => c.id !== id))
+    }).catch(err => console.error('Failed to delete category:', err))
   }, [])
 
   const addSlide = useCallback((slide: Omit<HeroSlide, 'id'>) => {
-    setHeroSlides(prev => [...prev, { ...slide, id: Date.now() }])
+    heroSlidesApi.create(slide).then(s => {
+      setHeroSlides(prev => [...prev, s])
+    }).catch(err => console.error('Failed to add slide:', err))
   }, [])
 
-  const removeSlide = useCallback((id: number) => {
-    setHeroSlides(prev => prev.filter(s => s.id !== id))
+  const removeSlide = useCallback((id: string) => {
+    heroSlidesApi.delete(id).then(() => {
+      setHeroSlides(prev => prev.filter(s => s.id !== id))
+    }).catch(err => console.error('Failed to delete slide:', err))
   }, [])
 
   const addProduct = useCallback((product: Omit<Product, 'id'>) => {
-    setProducts(prev => [...prev, { ...product, id: Date.now() }])
+    productsApi.create({
+      ...product,
+      originalPrice: product.originalPrice,
+      tag: product.tag,
+    }).then(p => {
+      setProducts(prev => [...prev, { ...p, originalPrice: p.originalPrice ?? undefined, tag: p.tag ?? undefined }])
+    }).catch(err => console.error('Failed to add product:', err))
   }, [])
 
-  const updateProduct = useCallback((id: number, updates: Partial<Product>) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p))
-  }, [])
+  const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
+    const current = products.find(p => p.id === id)
+    if (!current) return
+    const merged = { ...current, ...updates }
+    productsApi.update(id, {
+      name: merged.name,
+      price: merged.price,
+      originalPrice: merged.originalPrice,
+      image: merged.image,
+      tag: merged.tag,
+      category: merged.category,
+      description: merged.description,
+      dimensions: merged.dimensions,
+      material: merged.material,
+      color: merged.color,
+    }).then(p => {
+      setProducts(prev => prev.map(prod => prod.id === id ? { ...p, originalPrice: p.originalPrice ?? undefined, tag: p.tag ?? undefined } : prod))
+    }).catch(err => console.error('Failed to update product:', err))
+  }, [products])
 
-  const removeProduct = useCallback((id: number) => {
-    setProducts(prev => prev.filter(p => p.id !== id))
+  const removeProduct = useCallback((id: string) => {
+    productsApi.delete(id).then(() => {
+      setProducts(prev => prev.filter(p => p.id !== id))
+    }).catch(err => console.error('Failed to delete product:', err))
   }, [])
 
   return (
-    <DataContext.Provider value={{ categories, heroSlides, products, addCategory, updateCategory, removeCategory, addSlide, removeSlide, addProduct, updateProduct, removeProduct }}>
+    <DataContext.Provider value={{ categories, heroSlides, products, loading, addCategory, updateCategory, removeCategory, addSlide, removeSlide, addProduct, updateProduct, removeProduct }}>
       {children}
     </DataContext.Provider>
   )
@@ -768,7 +793,7 @@ function CategoriesSection() {
           {categories.map((cat) => (
             <Link to={`/category/${cat.slug}`} key={cat.id} className="category-card">
               <div className="category-icon">
-                {categoryIcons[cat.slug]}
+                {cat.icon ? <img src={cat.icon} alt={cat.name} /> : categoryIcons[cat.slug]}
               </div>
               <h3>{cat.name}</h3>
               <span className="category-count">{cat.count} ნივთი</span>
@@ -1012,7 +1037,12 @@ function BusinessPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    businessInquiriesApi.create(formData).then(() => {
+      setSubmitted(true)
+    }).catch(err => {
+      console.error('Failed to submit inquiry:', err)
+      alert('შეცდომა მოხდა. სცადეთ მოგვიანებით.')
+    })
   }
 
   return (
@@ -1997,10 +2027,52 @@ function CategoryPage() {
 /* ── Cart Page ───────────────────────────────────── */
 function CartPage() {
   const { items, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice } = useCart()
+  const [checkoutForm, setCheckoutForm] = useState({ customerName: '', customerPhone: '', customerEmail: '', customerAddress: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [orderSuccess, setOrderSuccess] = useState<{ invoiceNumber: string } | null>(null)
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
+
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const result = await ordersApi.create({
+        customerName: checkoutForm.customerName,
+        customerPhone: checkoutForm.customerPhone,
+        customerEmail: checkoutForm.customerEmail,
+        customerAddress: checkoutForm.customerAddress,
+        items: items.map(i => ({ productId: i.product.id, quantity: i.quantity })),
+      })
+      setOrderSuccess({ invoiceNumber: result.invoiceNumber })
+      clearCart()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'შეკვეთის გაფორმება ვერ მოხერხდა.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (orderSuccess) {
+    return (
+      <section className="cart-page">
+        <div className="container">
+          <div className="cart-empty">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent, #C9A96E)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <h2>შეკვეთა წარმატებით გაფორმდა!</h2>
+            <p>ინვოისის ნომერი: <strong>#{orderSuccess.invoiceNumber}</strong></p>
+            <p>PDF ინვოისი გამოგეგზავნათ მეილზე.</p>
+            <Link to="/" className="btn btn-primary" style={{ marginTop: 24 }}>მაღაზიაში დაბრუნება</Link>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   if (items.length === 0) {
     return (
@@ -2095,7 +2167,30 @@ function CartPage() {
                 დაამატე კიდევ ₾{200 - totalPrice} უფასო მიტანისთვის
               </p>
             )}
-            <button className="btn btn-primary btn-full">შეკვეთის გაფორმება</button>
+
+            <form className="checkout-form" onSubmit={handleCheckout}>
+              <h4>შეკვეთის გაფორმება</h4>
+              <div className="form-group">
+                <label htmlFor="checkout-name">სახელი და გვარი *</label>
+                <input type="text" id="checkout-name" value={checkoutForm.customerName} onChange={e => setCheckoutForm({ ...checkoutForm, customerName: e.target.value })} required placeholder="მაგ: გიორგი მაისურაძე" />
+              </div>
+              <div className="form-group">
+                <label htmlFor="checkout-phone">ტელეფონი *</label>
+                <input type="tel" id="checkout-phone" value={checkoutForm.customerPhone} onChange={e => setCheckoutForm({ ...checkoutForm, customerPhone: e.target.value })} required placeholder="+995 5XX XXX XXX" />
+              </div>
+              <div className="form-group">
+                <label htmlFor="checkout-email">ელ. ფოსტა *</label>
+                <input type="email" id="checkout-email" value={checkoutForm.customerEmail} onChange={e => setCheckoutForm({ ...checkoutForm, customerEmail: e.target.value })} required placeholder="email@example.com" />
+              </div>
+              <div className="form-group">
+                <label htmlFor="checkout-address">მისამართი *</label>
+                <input type="text" id="checkout-address" value={checkoutForm.customerAddress} onChange={e => setCheckoutForm({ ...checkoutForm, customerAddress: e.target.value })} required placeholder="მაგ: თბილისი, რუსთაველის გამზ. 12" />
+              </div>
+              <button type="submit" className="btn btn-primary btn-full" disabled={submitting}>
+                {submitting ? 'მუშავდება...' : 'შეკვეთის დადასტურება'}
+              </button>
+            </form>
+
             <Link to="/" className="btn btn-outline btn-full">მაღაზიაში დაბრუნება</Link>
           </div>
         </div>
@@ -2106,6 +2201,7 @@ function CartPage() {
 
 function Layout() {
   return (
+    <AuthProvider>
     <DataProvider>
       <CartProvider>
         <Navbar />
@@ -2124,6 +2220,7 @@ function Layout() {
       </a>
     </CartProvider>
     </DataProvider>
+    </AuthProvider>
   )
 }
 
@@ -2138,7 +2235,7 @@ function ProductDetailPage() {
     window.scrollTo(0, 0)
   }, [id])
 
-  const product = products.find(p => p.id === Number(id))
+  const product = products.find(p => p.id === id)
 
   if (!product) {
     return (
@@ -2317,6 +2414,111 @@ function ProductDetailPage() {
 }
 
 /* ══════════════════════════════════════════════════
+   AUTH CONTEXT
+   ══════════════════════════════════════════════════ */
+
+type AuthContextType = {
+  isAuthenticated: boolean
+  login: (username: string, password: string) => Promise<void>
+  logout: () => void
+}
+
+const AuthContext = createContext<AuthContextType | null>(null)
+
+function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}
+
+function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('taika-admin-token'))
+
+  const login = useCallback(async (username: string, password: string) => {
+    const res = await authApi.login(username, password)
+    localStorage.setItem('taika-admin-token', res.token)
+    setIsAuthenticated(true)
+  }, [])
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('taika-admin-token')
+    setIsAuthenticated(false)
+  }, [])
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
+  if (!isAuthenticated) return <Navigate to="/admin/login" replace />
+  return <>{children}</>
+}
+
+/* ══════════════════════════════════════════════════
+   ADMIN LOGIN PAGE
+   ══════════════════════════════════════════════════ */
+
+function AdminLoginPage() {
+  const { isAuthenticated, login } = useAuth()
+  const navigate = useNavigate()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated) navigate('/admin', { replace: true })
+  }, [isAuthenticated, navigate])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await login(username, password)
+      navigate('/admin', { replace: true })
+    } catch {
+      setError('არასწორი მომხმარებელი ან პაროლი')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <section className="admin-login-page">
+      <div className="admin-login-card">
+        <div className="admin-login-header">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
+          </svg>
+          <h1>ადმინ პანელი</h1>
+          <p>შედით სისტემაში ცვლილებების განსახორციელებლად</p>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="admin-username">მომხმარებელი</label>
+            <input type="text" id="admin-username" value={username} onChange={e => setUsername(e.target.value)} placeholder="მომხმარებლის სახელი" required autoFocus />
+          </div>
+          <div className="form-group">
+            <label htmlFor="admin-password">პაროლი</label>
+            <input type="password" id="admin-password" value={password} onChange={e => setPassword(e.target.value)} placeholder="პაროლი" required />
+          </div>
+          {error && <div className="admin-login-error">{error}</div>}
+          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
+            {loading ? 'შესვლა...' : 'შესვლა'}
+          </button>
+        </form>
+      </div>
+    </section>
+  )
+}
+
+/* ══════════════════════════════════════════════════
    ADMIN PAGE
    ══════════════════════════════════════════════════ */
 
@@ -2335,15 +2537,17 @@ const emptyProductForm = {
 
 function AdminPage() {
   const { categories, heroSlides, products, addCategory, updateCategory, removeCategory, addSlide, removeSlide, addProduct, updateProduct, removeProduct } = useData()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'categories' | 'products' | 'slides'>('categories')
 
   // Category form
-  const [catForm, setCatForm] = useState({ name: '', slug: '', description: '', image: '', count: 0 })
-  const [editingCatId, setEditingCatId] = useState<number | null>(null)
+  const [catForm, setCatForm] = useState({ name: '', slug: '', description: '', image: '', icon: '', count: 0 })
+  const [editingCatId, setEditingCatId] = useState<string | null>(null)
 
   // Product form
   const [prodForm, setProdForm] = useState({ ...emptyProductForm })
-  const [editingProdId, setEditingProdId] = useState<number | null>(null)
+  const [editingProdId, setEditingProdId] = useState<string | null>(null)
   const [prodFilterCat, setProdFilterCat] = useState<string>('all')
 
   // Slide form
@@ -2361,17 +2565,17 @@ function AdminPage() {
     } else {
       addCategory(catForm)
     }
-    setCatForm({ name: '', slug: '', description: '', image: '', count: 0 })
+    setCatForm({ name: '', slug: '', description: '', image: '', icon: '', count: 0 })
   }
 
   const startEditCat = (cat: Category) => {
     setEditingCatId(cat.id)
-    setCatForm({ name: cat.name, slug: cat.slug, description: cat.description, image: cat.image, count: cat.count })
+    setCatForm({ name: cat.name, slug: cat.slug, description: cat.description, image: cat.image, icon: cat.icon || '', count: cat.count })
   }
 
   const cancelEditCat = () => {
     setEditingCatId(null)
-    setCatForm({ name: '', slug: '', description: '', image: '', count: 0 })
+    setCatForm({ name: '', slug: '', description: '', image: '', icon: '', count: 0 })
   }
 
   // ── Product handlers ──
@@ -2423,6 +2627,28 @@ function AdminPage() {
     setSlideForm({ title: '', subtitle: '', description: '', image: '', buttonText: '', buttonLink: '', accent: '#C9A96E' })
   }
 
+  // ── Image upload handler ──
+  const [uploading, setUploading] = useState(false)
+
+  const handleImageUpload = async (
+    file: File,
+    onSuccess: (url: string) => void
+  ) => {
+    if (file.size > 2 * 1024 * 1024) {
+      alert('ფაილის ზომა არ უნდა აღემატებოდეს 2 MB-ს.')
+      return
+    }
+    setUploading(true)
+    try {
+      const url = await uploadApi.upload(file)
+      onSuccess(url)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'ფოტოს ატვირთვა ვერ მოხერხდა.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   // Filtered products
   const filteredProducts = prodFilterCat === 'all' ? products : products.filter(p => p.category === prodFilterCat)
 
@@ -2433,6 +2659,12 @@ function AdminPage() {
           <span className="section-tag">ადმინისტრირება</span>
           <h1>ადმინ პანელი</h1>
           <p>კატეგორიების, პროდუქტების და სლაიდების მართვა</p>
+          <button className="btn btn-outline admin-logout-btn" onClick={() => { logout(); navigate('/') }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            გასვლა
+          </button>
         </div>
       </div>
 
@@ -2479,11 +2711,40 @@ function AdminPage() {
                     <textarea id="cat-desc" value={catForm.description} onChange={e => setCatForm({ ...catForm, description: e.target.value })} placeholder="კატეგორიის აღწერა..." rows={3} />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="cat-image">ფოტოს URL *</label>
-                    <input type="url" id="cat-image" value={catForm.image} onChange={e => setCatForm({ ...catForm, image: e.target.value })} placeholder="https://..." required />
+                    <label htmlFor="cat-image">ფოტო (კატეგორიის გვერდი) * (მაქს. 2 MB)</label>
+                    <input type="file" id="cat-image" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file, url => setCatForm({ ...catForm, image: url }))
+                    }} />
+                    {uploading && <span className="upload-status">იტვირთება...</span>}
                   </div>
                   {catForm.image && (
                     <div className="admin-preview-image"><img src={catForm.image} alt="Preview" /></div>
+                  )}
+                  <div className="form-group">
+                    <label htmlFor="cat-icon">აიკონი (მთავარ გვერდზე) (მაქს. 2 MB)</label>
+                    <input type="file" id="cat-icon" accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml" disabled={uploading} onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file, url => setCatForm({ ...catForm, icon: url }))
+                    }} />
+                    {uploading && <span className="upload-status">იტვირთება...</span>}
+                  </div>
+                  {catForm.icon && (
+                    <div className="admin-preview-image" style={{ maxWidth: 80 }}><img src={catForm.icon} alt="Icon preview" /></div>
+                  )}
+                  {/* Preview card */}
+                  {(catForm.name || catForm.icon) && (
+                    <div className="admin-cat-preview">
+                      <p style={{ fontSize: 12, color: 'var(--secondary)', marginBottom: 8 }}>როგორ გამოჩნდება მთავარ გვერდზე:</p>
+                      <div className="category-card-preview">
+                        <div className="category-icon-preview">
+                          {catForm.icon ? <img src={catForm.icon} alt="" /> : <span>?</span>}
+                        </div>
+                        <h4>{catForm.name || 'კატეგორია'}</h4>
+                        <span style={{ fontSize: 12, color: 'var(--secondary)' }}>{catForm.count} ნივთი</span>
+                        <p style={{ fontSize: 12, color: 'var(--secondary)', marginTop: 4 }}>{catForm.description || 'აღწერა'}</p>
+                      </div>
+                    </div>
                   )}
                   <div className="form-group">
                     <label htmlFor="cat-count">ნივთების რაოდენობა</label>
@@ -2571,8 +2832,12 @@ function AdminPage() {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label htmlFor="prod-image">ფოტოს URL *</label>
-                    <input type="url" id="prod-image" value={prodForm.image} onChange={e => setProdForm({ ...prodForm, image: e.target.value })} placeholder="https://..." required />
+                    <label htmlFor="prod-image">ფოტო * (მაქს. 2 MB)</label>
+                    <input type="file" id="prod-image" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file, url => setProdForm({ ...prodForm, image: url }))
+                    }} />
+                    {uploading && <span className="upload-status">იტვირთება...</span>}
                   </div>
                   {prodForm.image && (
                     <div className="admin-preview-image"><img src={prodForm.image} alt="Preview" /></div>
@@ -2688,8 +2953,12 @@ function AdminPage() {
                     <textarea id="slide-desc" value={slideForm.description} onChange={e => setSlideForm({ ...slideForm, description: e.target.value })} placeholder="სლაიდის აღწერა..." rows={3} />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="slide-image">ფოტოს URL *</label>
-                    <input type="url" id="slide-image" value={slideForm.image} onChange={e => setSlideForm({ ...slideForm, image: e.target.value })} placeholder="https://..." required />
+                    <label htmlFor="slide-image">ფოტო * (მაქს. 2 MB)</label>
+                    <input type="file" id="slide-image" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file, url => setSlideForm({ ...slideForm, image: url }))
+                    }} />
+                    {uploading && <span className="upload-status">იტვირთება...</span>}
                   </div>
                   {slideForm.image && (
                     <div className="admin-preview-image wide"><img src={slideForm.image} alt="Preview" /></div>
@@ -2766,7 +3035,8 @@ export const routes: RouteObject[] = [
       { path: '/business', element: <BusinessPage /> },
       { path: '/quiz', element: <MattressQuizPage /> },
       { path: '/mattress', element: <MattressBuilderPage /> },
-      { path: '/admin', element: <AdminPage /> },
+      { path: '/admin/login', element: <AdminLoginPage /> },
+      { path: '/admin', element: <RequireAuth><AdminPage /></RequireAuth> },
     ],
   },
 ]

@@ -1791,6 +1791,57 @@
   height: 100%;
 }
 
+.category-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ── Admin category preview ── */
+.admin-cat-preview {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.category-card-preview {
+  text-align: center;
+  padding: 20px;
+  background: var(--white);
+  border-radius: 12px;
+}
+
+.category-icon-preview {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+}
+
+.category-icon-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.category-icon-preview span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 24px;
+  color: var(--secondary);
+  background: var(--bg-card);
+  border-radius: 12px;
+}
+
+.category-card-preview h4 {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
 .category-card h3 {
   font-family: var(--font-heading);
   font-size: 20px;
@@ -3230,6 +3281,76 @@
 }
 
 /* ══════════════════════════════════════════════════
+   ADMIN LOGIN PAGE
+   ══════════════════════════════════════════════════ */
+
+.admin-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-alt);
+  padding: 40px 20px;
+}
+
+.admin-login-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 48px 40px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.admin-login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.admin-login-header svg {
+  margin-bottom: 16px;
+}
+
+.admin-login-header h1 {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.admin-login-header p {
+  color: var(--secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.admin-login-error {
+  background: #fee;
+  color: #c33;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.admin-logout-btn {
+  margin-top: 20px;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.admin-logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  color: #fff !important;
+}
+
+/* ══════════════════════════════════════════════════
    ADMIN PAGE
    ══════════════════════════════════════════════════ */
 
@@ -3645,4 +3766,77 @@
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* ── Upload ── */
+.upload-status {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--accent, #C9A96E);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+input[type="file"] {
+  padding: 10px;
+  border: 1px dashed var(--border, #3a3a3a);
+  border-radius: 8px;
+  background: var(--bg-card, #1a1a1a);
+  color: var(--text, #eee);
+  cursor: pointer;
+  width: 100%;
+}
+
+input[type="file"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Checkout Form ── */
+.checkout-form {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border, #3a3a3a);
+}
+
+.checkout-form h4 {
+  margin-bottom: 16px;
+  font-size: 15px;
+  color: var(--text, #eee);
+}
+
+.checkout-form .form-group {
+  margin-bottom: 12px;
+}
+
+.checkout-form label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: var(--secondary);
+}
+
+.checkout-form input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--primary);
+  font-size: 14px;
+}
+
+.checkout-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.checkout-form button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
