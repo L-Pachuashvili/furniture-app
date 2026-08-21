@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import { Link, useParams, useNavigate, useLocation, Outlet, Navigate } from 'react-router-dom'
 import type { RouteObject } from 'react-router-dom'
 import { categoriesApi, productsApi, heroSlidesApi, businessInquiriesApi, uploadApi, ordersApi, authApi } from './api'
-import type { CategoryResponse, ProductResponse, HeroSlideResponse } from './api'
 import './App.css'
 
 /* ══════════════════════════════════════════════════
@@ -85,313 +84,6 @@ const categoryIcons: Record<string, ReactNode> = {
     </svg>
   ),
 }
-
-const defaultCategories: Category[] = [
-  {
-    id: 1,
-    slug: 'chairs',
-    name: 'სამისხდომო',
-    image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=500&q=80',
-    count: 48,
-    description: 'კომფორტული სავარძლები, სკამები და პუფები ყველა ოთახისთვის',
-  },
-  {
-    id: 2,
-    slug: 'tables',
-    name: 'მაგიდები',
-    image: 'https://images.unsplash.com/photo-1611269154421-4e27233ac5c7?w=500&q=80',
-    count: 35,
-    description: 'სასადილო, ჟურნალის, სამუშაო და კონსოლის მაგიდები',
-  },
-  {
-    id: 3,
-    slug: 'beds',
-    name: 'საწოლები',
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&q=80',
-    count: 24,
-    description: 'ერთადგილიანი და ორადგილიანი საწოლები ლეიბით და ულეიბოდ',
-  },
-  {
-    id: 4,
-    slug: 'lighting',
-    name: 'განათება',
-    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?w=500&q=80',
-    count: 62,
-    description: 'ჭაღები, მაგიდის ნათურები, კედლის სანათები და LED ლენტები',
-  },
-]
-
-const defaultProducts: Product[] = [
-  // ── სამისხდომო ──
-  {
-    id: 1,
-    name: 'Nordic სავარძელი',
-    price: 890,
-    originalPrice: 1200,
-    image: 'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=500&q=80',
-    tag: 'ახალი',
-    category: 'chairs',
-    description: 'სკანდინავიური სტილის სავარძელი მაღალი ზურგით და რბილი ბალიშებით. იდეალურია მისაღებისა და საკითხავი კუთხისთვის.',
-    dimensions: '75 × 80 × 105 სმ',
-    material: 'მუხის ხე, ბამბის ქსოვილი',
-    color: 'ნაცრისფერი',
-  },
-  {
-    id: 2,
-    name: 'Velvet დივანი',
-    price: 2100,
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&q=80',
-    tag: 'ბესტსელერი',
-    category: 'chairs',
-    description: 'ელეგანტური ხავერდის დივანი სამადგილიანი, მოდერნისტული დიზაინით. ქაფის შიგთავსი უზრუნველყოფს მაქსიმალურ კომფორტს.',
-    dimensions: '220 × 90 × 82 სმ',
-    material: 'ხავერდის ქსოვილი, მეტალის ფეხები',
-    color: 'მწვანე',
-  },
-  {
-    id: 3,
-    name: 'Lounge კრესლო',
-    price: 1450,
-    image: 'https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=500&q=80',
-    category: 'chairs',
-    description: 'მარტივი და თანამედროვე ლაუნჟ კრესლო ფართო სავარძლითა და ერგონომიული ფორმით.',
-    dimensions: '82 × 85 × 78 სმ',
-    material: 'ტყავი, ორაკულის ხე',
-    color: 'ყავისფერი',
-  },
-  {
-    id: 4,
-    name: 'რხევადი სავარძელი',
-    price: 680,
-    originalPrice: 850,
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&q=80',
-    tag: 'ფასდაკლება',
-    category: 'chairs',
-    description: 'კლასიკური რხევადი სავარძელი თანამედროვე ინტერპრეტაციით. მშვიდი საღამოებისთვის.',
-    dimensions: '65 × 95 × 100 სმ',
-    material: 'ნაძვის ხე, ბამბა',
-    color: 'კრემისფერი',
-  },
-  {
-    id: 5,
-    name: 'ბარის სკამი',
-    price: 320,
-    image: 'https://images.unsplash.com/photo-1503602642458-232111445657?w=500&q=80',
-    tag: 'ახალი',
-    category: 'chairs',
-    description: 'მინიმალისტური ბარის სკამი რეგულირებადი სიმაღლით. იდეალურია სამზარეულოს კუნძულისთვის.',
-    dimensions: '42 × 42 × 75 სმ',
-    material: 'მეტალი, ხელოვნური ტყავი',
-    color: 'შავი',
-  },
-  {
-    id: 6,
-    name: 'Accent სავარძელი',
-    price: 950,
-    image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?w=500&q=80',
-    category: 'chairs',
-    description: 'აქცენტის სავარძელი ნათელი ფერებით, რომელიც ოთახს განსაკუთრებულ ხასიათს შესძენს.',
-    dimensions: '70 × 75 × 85 სმ',
-    material: 'ლინენი, თითის ხე',
-    color: 'ყვითელი',
-  },
-
-  // ── მაგიდები ──
-  {
-    id: 7,
-    name: 'Minimalist ჟურნალის მაგიდა',
-    price: 450,
-    image: 'https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?w=500&q=80',
-    category: 'tables',
-    description: 'მინიმალისტური ჟურნალის მაგიდა მრგვალი ფორმით. ბუნებრივი ხის ზედაპირი თბილ ატმოსფეროს ქმნის.',
-    dimensions: 'Ø80 × 45 სმ',
-    material: 'მუხის ხე, მეტალის ფეხები',
-    color: 'ნატურალური მუხა',
-  },
-  {
-    id: 8,
-    name: 'ხის სასადილო მაგიდა',
-    price: 1350,
-    originalPrice: 1600,
-    image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=500&q=80',
-    tag: 'ფასდაკლება',
-    category: 'tables',
-    description: '6-ადგილიანი სასადილო მაგიდა მასიური ხისგან. გამძლე კონსტრუქცია ყოველდღიური გამოყენებისთვის.',
-    dimensions: '180 × 90 × 76 სმ',
-    material: 'მასიური ცაცხვის ხე',
-    color: 'მუქი კაკალი',
-  },
-  {
-    id: 9,
-    name: 'სამუშაო მაგიდა',
-    price: 780,
-    image: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&q=80',
-    category: 'tables',
-    description: 'ფართო სამუშაო მაგიდა ჩაშენებული კაბელების მართვის სისტემით. იდეალურია სახლის ოფისისთვის.',
-    dimensions: '140 × 65 × 75 სმ',
-    material: 'MDF, მეტალის ჩარჩო',
-    color: 'თეთრი / ხის კომბინაცია',
-  },
-  {
-    id: 10,
-    name: 'კონსოლის მაგიდა',
-    price: 520,
-    image: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?w=500&q=80',
-    tag: 'ახალი',
-    category: 'tables',
-    description: 'ელეგანტური კონსოლის მაგიდა ჰოლისა და კორიდორისთვის. ორი თარო შესანახისთვის.',
-    dimensions: '120 × 35 × 80 სმ',
-    material: 'მუხა, ლითონის ფეხები',
-    color: 'ოქროსფერი / თეთრი',
-  },
-  {
-    id: 11,
-    name: 'მრგვალი სასადილო მაგიდა',
-    price: 980,
-    image: 'https://images.unsplash.com/photo-1604578762246-41134e37f9cc?w=500&q=80',
-    category: 'tables',
-    description: '4-ადგილიანი მრგვალი სასადილო მაგიდა კომპაქტური სივრცეებისთვის.',
-    dimensions: 'Ø110 × 76 სმ',
-    material: 'მარმარილოს ზედაპირი, მეტალის ფეხი',
-    color: 'თეთრი მარმარილო',
-  },
-
-  // ── საწოლები ──
-  {
-    id: 12,
-    name: 'საწოლი Oslo',
-    price: 1890,
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&q=80',
-    category: 'beds',
-    description: 'სკანდინავიური სტილის ორადგილიანი საწოლი ტაფტინგის თავსართით. ჩაშენებული ლეიბის მექანიზმი.',
-    dimensions: '160 × 200 × 120 სმ',
-    material: 'მუხის ხე, ხავერდის ტაპიცერება',
-    color: 'ნაცრისფერი',
-  },
-  {
-    id: 13,
-    name: 'პლატფორმის საწოლი',
-    price: 1450,
-    originalPrice: 1700,
-    image: 'https://images.unsplash.com/photo-1588046130717-0eb0c9a3ba15?w=500&q=80',
-    tag: 'ფასდაკლება',
-    category: 'beds',
-    description: 'დაბალპროფილიანი პლატფორმის საწოლი იაპონური ესთეტიკით. მინიმალისტური დიზაინი.',
-    dimensions: '180 × 200 × 35 სმ',
-    material: 'ბამბუკი, MDF',
-    color: 'ნატურალური',
-  },
-  {
-    id: 14,
-    name: 'საბავშვო საწოლი',
-    price: 890,
-    image: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?w=500&q=80',
-    tag: 'ახალი',
-    category: 'beds',
-    description: 'უსაფრთხო საბავშვო საწოლი დამცავი ბარიერებით. ხარისხიანი მასალები ბავშვის ჯანმრთელობისთვის.',
-    dimensions: '90 × 190 × 80 სმ',
-    material: 'ფიჭვის ხე, ჰიპოალერგიული საღებავი',
-    color: 'თეთრი',
-  },
-  {
-    id: 15,
-    name: 'King Size საწოლი',
-    price: 2800,
-    image: 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=500&q=80',
-    tag: 'ბესტსელერი',
-    category: 'beds',
-    description: 'ფუფუნების King Size საწოლი რბილი ტაპიცერებით. ინტეგრირებული LED განათება თავსართში.',
-    dimensions: '200 × 210 × 130 სმ',
-    material: 'ხავერდი, MDF, LED',
-    color: 'მუქი ნაცრისფერი',
-  },
-  {
-    id: 16,
-    name: 'დივან-საწოლი',
-    price: 1200,
-    image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=500&q=80',
-    category: 'beds',
-    description: 'ფუნქციური დივან-საწოლი მოხსნადი საფარით. იშლება ორადგილიან საწოლად.',
-    dimensions: '190 × 95 × 85 სმ (გაშლილი: 190 × 140)',
-    material: 'ქსოვილი, ქაფის შიგთავსი',
-    color: 'ლურჯი',
-  },
-
-  // ── განათება ──
-  {
-    id: 17,
-    name: 'Pendant ჭაღი',
-    price: 340,
-    originalPrice: 420,
-    image: 'https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?w=500&q=80',
-    tag: 'ახალი',
-    category: 'lighting',
-    description: 'თანამედროვე Pendant ჭაღი გეომეტრიული ფორმით. E27 ბუდე, LED-თან თავსებადი.',
-    dimensions: 'Ø40 × 35 სმ (კაბელი: 150 სმ)',
-    material: 'ლითონი, მინა',
-    color: 'შავი / ოქროსფერი',
-  },
-  {
-    id: 18,
-    name: 'Boho თაროები',
-    price: 520,
-    image: 'https://images.unsplash.com/photo-1594620302200-9a762244a156?w=500&q=80',
-    tag: 'ახალი',
-    category: 'lighting',
-    description: 'ბოჰო სტილის კედლის თარო ინტეგრირებული LED განათებით. დეკორატიული და ფუნქციური.',
-    dimensions: '80 × 20 × 25 სმ',
-    material: 'მანგოს ხე, LED ლენტი',
-    color: 'ნატურალური ხე',
-  },
-  {
-    id: 19,
-    name: 'მაგიდის ნათურა Arc',
-    price: 280,
-    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057ab6fe?w=500&q=80',
-    category: 'lighting',
-    description: 'ელეგანტური Arc მაგიდის ნათურა რეგულირებადი თავით. 3 სიკაშკაშის რეჟიმი.',
-    dimensions: '18 × 18 × 55 სმ',
-    material: 'ლითონი, ქსოვილის აბაჟური',
-    color: 'სპილენძი',
-  },
-  {
-    id: 20,
-    name: 'იატაკის ნათურა',
-    price: 490,
-    originalPrice: 620,
-    image: 'https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=500&q=80',
-    tag: 'ფასდაკლება',
-    category: 'lighting',
-    description: 'მინიმალისტური იატაკის ნათურა მისაღები ოთახისთვის. თბილი, დიფუზური შუქი.',
-    dimensions: '35 × 35 × 165 სმ',
-    material: 'ბამბუკი, ბრინჯის ქაღალდი',
-    color: 'ნატურალური',
-  },
-  {
-    id: 21,
-    name: 'კედლის სანათი Sconce',
-    price: 190,
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=500&q=80',
-    tag: 'ახალი',
-    category: 'lighting',
-    description: 'მოდერნისტული კედლის სანათი ზემოთ და ქვემოთ მიმართული შუქით.',
-    dimensions: '10 × 12 × 20 სმ',
-    material: 'ალუმინი',
-    color: 'თეთრი',
-  },
-  {
-    id: 22,
-    name: 'ჭაღი Crystal',
-    price: 1200,
-    image: 'https://images.unsplash.com/photo-1543198126-a8ad8e47fb22?w=500&q=80',
-    tag: 'ბესტსელერი',
-    category: 'lighting',
-    description: 'ბრწყინვალე კრისტალის ჭაღი სასადილო ოთახისთვის. 8 ნათურის ბუდე.',
-    dimensions: 'Ø65 × 50 სმ',
-    material: 'კრისტალი, ქრომი',
-    color: 'გამჭვირვალე / ვერცხლი',
-  },
-]
 
 /* ══════════════════════════════════════════════════
    CART CONTEXT
@@ -550,28 +242,6 @@ function Navbar() {
 }
 
 /* ── Hero Slider ─────────────────────────────────── */
-const defaultHeroSlides: HeroSlide[] = [
-  {
-    id: 1,
-    title: 'ზაფხულის ფასდაკლება',
-    subtitle: 'ყველა სავარძელზე -30%',
-    description: 'აირჩიე შენი საყვარელი სავარძელი განსაკუთრებულ ფასად. აქცია მოქმედებს მარაგის ამოწურვამდე.',
-    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=1200&q=80',
-    buttonText: 'აქციის ნახვა',
-    buttonLink: '/category/chairs',
-    accent: '#C9A96E',
-  },
-  {
-    id: 2,
-    title: 'კორპორატიული შეთავაზება',
-    subtitle: 'კომპანიებისთვის',
-    description: 'გაგვიგზავნეთ განაცხადი და ჩვენი გუნდი დაგიკავშირდებათ ინდივიდუალური შეთავაზებით. ოფისის ავეჯი, HoReCa პროექტები და სხვა.',
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80',
-    buttonText: 'განაცხადის შევსება',
-    buttonLink: '/business',
-    accent: '#2A6F6F',
-  },
-]
 
 /* ══════════════════════════════════════════════════
    DATA CONTEXT (Admin-managed categories & slides)
@@ -612,7 +282,7 @@ function DataProvider({ children }: { children: React.ReactNode }) {
       heroSlidesApi.getAll(),
       productsApi.getAll({ pageSize: 200 }),
     ]).then(([cats, slides, prodsPage]) => {
-      setCategories(cats.map(c => ({ ...c, id: c.id })))
+      setCategories(cats.map(c => ({ ...c, id: c.id, icon: c.icon ?? undefined })))
       setHeroSlides(slides.map(s => ({ ...s, id: s.id })))
       setProducts(prodsPage.items.map(p => ({
         ...p,
@@ -627,7 +297,7 @@ function DataProvider({ children }: { children: React.ReactNode }) {
 
   const addCategory = useCallback((cat: Omit<Category, 'id'>) => {
     categoriesApi.create(cat).then(c => {
-      setCategories(prev => [...prev, c])
+      setCategories(prev => [...prev, { ...c, icon: c.icon ?? undefined }])
     }).catch(err => console.error('Failed to add category:', err))
   }, [])
 
@@ -636,7 +306,7 @@ function DataProvider({ children }: { children: React.ReactNode }) {
     if (!current) return
     const merged = { ...current, ...updates }
     categoriesApi.update(id, { name: merged.name, slug: merged.slug, image: merged.image, icon: merged.icon, description: merged.description, count: merged.count }).then(c => {
-      setCategories(prev => prev.map(cat => cat.id === id ? c : cat))
+      setCategories(prev => prev.map(cat => cat.id === id ? { ...c, icon: c.icon ?? undefined } : cat))
     }).catch(err => console.error('Failed to update category:', err))
   }, [categories])
 
