@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, createContext, useContext } from 'rea
 import type { ReactNode } from 'react'
 import { Link, useParams, useNavigate, useLocation, Outlet, Navigate } from 'react-router-dom'
 import type { RouteObject } from 'react-router-dom'
-import { categoriesApi, productsApi, heroSlidesApi, businessInquiriesApi, uploadApi, ordersApi, authApi } from './api'
+import { categoriesApi, productsApi, heroSlidesApi, businessInquiriesApi, uploadApi, ordersApi, authApi, collectionsApi } from './api'
+import type { CollectionResponse, CollectionAdminResponse, CollectionProductsResponse, CollectionSelectionMode, CollectionStatus, SaveCollectionRequest } from './api'
 import './App.css'
 
 /* ══════════════════════════════════════════════════
@@ -45,42 +46,45 @@ type HeroSlide = {
 }
 
 const categoryIcons: Record<string, ReactNode> = {
-  chairs: (
+  notebooks: (
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 28V12a4 4 0 0 1 4-4h24a4 4 0 0 1 4 4v16" />
-      <path d="M10 28a4 4 0 0 0-4 4v8a4 4 0 0 0 4 4h2v8M52 44v8M54 28a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4h-2" />
-      <path d="M12 44h40" />
-      <rect x="12" y="28" width="40" height="16" rx="4" />
+      <rect x="14" y="6" width="38" height="52" rx="3" />
+      <line x1="22" y1="6" x2="22" y2="58" />
+      <path d="M10 14h8M10 24h8M10 34h8M10 44h8" />
+      <line x1="28" y1="20" x2="44" y2="20" />
+      <line x1="28" y1="28" x2="44" y2="28" />
     </svg>
   ),
-  tables: (
+  pens: (
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="8" y="20" width="48" height="6" rx="2" />
-      <line x1="14" y1="26" x2="14" y2="52" />
-      <line x1="50" y1="26" x2="50" y2="52" />
-      <line x1="10" y1="52" x2="18" y2="52" />
-      <line x1="46" y1="52" x2="54" y2="52" />
+      <path d="M44 6l14 14L22 56H8V42L44 6z" />
+      <line x1="36" y1="14" x2="50" y2="28" />
+      <line x1="8" y1="42" x2="22" y2="56" />
     </svg>
   ),
-  beds: (
+  art: (
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 40V20a4 4 0 0 1 4-4h6v12h28V16h6a4 4 0 0 1 4 4v20" />
-      <rect x="4" y="40" width="56" height="8" rx="3" />
-      <line x1="10" y1="48" x2="10" y2="54" />
-      <line x1="54" y1="48" x2="54" y2="54" />
-      <rect x="14" y="22" width="10" height="6" rx="2" />
+      <path d="M32 6C17 6 6 17 6 30c0 12 10 18 18 18 4 0 5 2 5 5 0 3 2 5 6 5 14 0 23-12 23-26C58 17 47 6 32 6z" />
+      <circle cx="20" cy="26" r="3" />
+      <circle cx="30" cy="17" r="3" />
+      <circle cx="42" cy="19" r="3" />
+      <circle cx="47" cy="31" r="3" />
     </svg>
   ),
-  lighting: (
+  office: (
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M24 40h16v4a2 2 0 0 1-2 2H26a2 2 0 0 1-2-2v-4z" />
-      <path d="M26 46v4M38 46v4" />
-      <path d="M20 40c-3-4-5-9-5-15a17 17 0 0 1 34 0c0 6-2 11-5 15" />
-      <line x1="32" y1="4" x2="32" y2="8" />
-      <line x1="52" y1="12" x2="49" y2="14" />
-      <line x1="12" y1="12" x2="15" y2="14" />
-      <line x1="56" y1="25" x2="52" y2="25" />
-      <line x1="12" y1="25" x2="8" y2="25" />
+      <path d="M8 18h18l4 6h26v28a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3V18z" />
+      <path d="M22 12h28a3 3 0 0 1 3 3v9" />
+      <line x1="20" y1="36" x2="44" y2="36" />
+      <line x1="20" y1="44" x2="36" y2="44" />
+    </svg>
+  ),
+  school: (
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 24a18 18 0 0 1 36 0v30a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V24z" />
+      <path d="M24 10V8a8 8 0 0 1 16 0v2" />
+      <rect x="22" y="36" width="20" height="12" rx="2" />
+      <line x1="14" y1="30" x2="50" y2="30" />
     </svg>
   ),
 }
@@ -116,7 +120,7 @@ function useCart() {
 function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('taika-cart')
+      const saved = localStorage.getItem('windlife-cart')
       return saved ? JSON.parse(saved) : []
     } catch {
       return []
@@ -124,7 +128,7 @@ function CartProvider({ children }: { children: React.ReactNode }) {
   })
 
   useEffect(() => {
-    localStorage.setItem('taika-cart', JSON.stringify(items))
+    localStorage.setItem('windlife-cart', JSON.stringify(items))
   }, [items])
 
   const toggleCart = useCallback((product: Product) => {
@@ -194,7 +198,7 @@ function Navbar() {
   return (
     <header className="navbar">
       <div className="container navbar-inner">
-        <Link to="/" className="logo">TAIKA</Link>
+        <Link to="/" className="logo">WIND<span>LIFE</span></Link>
         <nav className={`nav-links ${menuOpen ? 'open' : ''}`}>
           <a href="#categories" onClick={(e) => { e.preventDefault(); scrollToSection('categories') }}>კატეგორიები</a>
           <Link to="/about">ჩვენ შესახებ</Link>
@@ -251,7 +255,9 @@ type DataContextType = {
   categories: Category[]
   heroSlides: HeroSlide[]
   products: Product[]
+  collections: CollectionResponse[]
   loading: boolean
+  refreshCollections: () => void
   addCategory: (cat: Omit<Category, 'id'>) => void
   updateCategory: (id: string, cat: Partial<Category>) => void
   removeCategory: (id: string) => void
@@ -274,7 +280,18 @@ function DataProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [collections, setCollections] = useState<CollectionResponse[]>([])
   const [loading, setLoading] = useState(true)
+
+  const refreshCollections = useCallback(() => {
+    collectionsApi.getVisible()
+      .then(setCollections)
+      .catch(err => console.error('Failed to load collections:', err))
+  }, [])
+
+  useEffect(() => {
+    refreshCollections()
+  }, [refreshCollections])
 
   useEffect(() => {
     Promise.all([
@@ -365,16 +382,32 @@ function DataProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <DataContext.Provider value={{ categories, heroSlides, products, loading, addCategory, updateCategory, removeCategory, addSlide, removeSlide, addProduct, updateProduct, removeProduct }}>
+    <DataContext.Provider value={{ categories, heroSlides, products, collections, loading, refreshCollections, addCategory, updateCategory, removeCategory, addSlide, removeSlide, addProduct, updateProduct, removeProduct }}>
       {children}
     </DataContext.Provider>
   )
 }
 
 function HeroSlider() {
-  const { heroSlides } = useData()
+  const { heroSlides: staticSlides, collections } = useData()
   const [current, setCurrent] = useState(0)
   const [paused, setPaused] = useState(false)
+
+  const heroSlides: HeroSlide[] = [
+    ...collections
+      .filter(c => c.showInSlider && c.bannerImage)
+      .map(c => ({
+        id: `collection-${c.id}`,
+        title: c.name,
+        subtitle: 'კოლექცია',
+        description: c.description,
+        image: c.bannerImage!,
+        buttonText: 'კოლექციის ნახვა',
+        buttonLink: `/collection/${c.slug}`,
+        accent: 'var(--burgundy)',
+      })),
+    ...staticSlides,
+  ]
 
   const next = useCallback(() => setCurrent((c) => (c + 1) % heroSlides.length), [heroSlides.length])
   const prev = useCallback(() => setCurrent((c) => (c - 1 + heroSlides.length) % heroSlides.length), [heroSlides.length])
@@ -447,6 +480,36 @@ function HeroSlider() {
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── Collections (Home) ─────────────────────────── */
+function CollectionsSection() {
+  const { collections } = useData()
+  const homepageCollections = collections.filter(c => c.showOnHomepage)
+  if (homepageCollections.length === 0) return null
+
+  return (
+    <section className="collections-section" id="collections">
+      <div className="container">
+        <div className="section-header">
+          <span className="section-tag">შეთავაზებები</span>
+          <p className="section-desc">თემატური და სეზონური კოლექციები</p>
+        </div>
+        <div className="collections-grid">
+          {homepageCollections.map(c => (
+            <Link to={`/collection/${c.slug}`} key={c.id} className="collection-card">
+              <img src={c.coverImage} alt={c.name} />
+              <div className="collection-card-overlay">
+                <h3>{c.name}</h3>
+                {c.description && <p>{c.description}</p>}
+                <span className="collection-card-count">{c.productCount} პროდუქტი →</span>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </section>
@@ -539,7 +602,7 @@ function FeaturedProducts() {
       <div className="container">
         <div className="section-header">
           <span className="section-tag">პროდუქცია</span>
-          <p className="section-desc">ჩვენი ყველაზე მოთხოვნადი ავეჯი</p>
+          <p className="section-desc">ყველაზე მოთხოვნადი საკანცელარიო ნივთები</p>
         </div>
         <div className="products-grid">
           {featured.map((product) => (
@@ -547,7 +610,7 @@ function FeaturedProducts() {
           ))}
         </div>
         <div className="products-cta">
-          <Link to="/category/chairs" className="btn btn-outline">ყველა პროდუქტის ნახვა</Link>
+          <Link to="/category/notebooks" className="btn btn-outline">ყველა პროდუქტის ნახვა</Link>
         </div>
       </div>
     </section>
@@ -559,19 +622,25 @@ function Banner() {
   return (
     <section className="banner" id="about">
       <div className="container banner-inner">
-        <div className="banner-image">
-          <img
-            src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=700&q=80"
-            alt="ინტერიერის დიზაინი"
-          />
+        <div className="banner-image banner-illustration" role="img" aria-label="რვეული და კალამი">
+          <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="40" y="30" width="100" height="140" rx="6" />
+            <line x1="58" y1="30" x2="58" y2="170" />
+            <path d="M32 50h16M32 75h16M32 100h16M32 125h16M32 150h16" />
+            <line x1="72" y1="65" x2="124" y2="65" />
+            <line x1="72" y1="85" x2="124" y2="85" />
+            <line x1="72" y1="105" x2="110" y2="105" />
+            <path d="M150 40l14 14-52 52-18 4 4-18 52-52z" />
+            <line x1="140" y1="50" x2="154" y2="64" />
+          </svg>
         </div>
         <div className="banner-content">
           <span className="section-tag">ჩვენ შესახებ</span>
-          <h2>ვქმნით სივრცეებს,<br />სადაც ცხოვრება სასიამოვნოა</h2>
+          <h2>ყველაფერი სწავლის,<br />მუშაობისა და შემოქმედებისთვის</h2>
           <p>
-            TAIKA-ში ვირჩევთ მხოლოდ უმაღლესი ხარისხის მასალებს და ვთანამშრომლობთ
-            საუკეთესო დიზაინერებთან, რომ ყველა ნივთი იყოს ფუნქციური, ესთეტიკური
-            და გამძლე.
+            Windlife-ში შეგროვებულია ხარისხიანი საკანცელარიო ნივთები სკოლისთვის,
+            უნივერსიტეტისთვის, ოფისისა და ხელოვნებისთვის — რვეულებიდან და კალმებიდან
+            დაწყებული, სახატავი მასალებითა და საოფისე აქსესუარებით დამთავრებული.
           </p>
           <div className="banner-features">
             <div className="feature">
@@ -581,8 +650,8 @@ function Banner() {
                 </svg>
               </div>
               <div>
-                <strong>ხარისხის გარანტია</strong>
-                <span>5 წლიანი გარანტია</span>
+                <strong>ორიგინალი პროდუქცია</strong>
+                <span>მხოლოდ სანდო ბრენდები</span>
               </div>
             </div>
             <div className="feature">
@@ -608,7 +677,7 @@ function Banner() {
               </div>
               <div>
                 <strong>მარტივი დაბრუნება</strong>
-                <span>30 დღის განმავლობაში</span>
+                <span>14 დღის განმავლობაში</span>
               </div>
             </div>
           </div>
@@ -625,8 +694,8 @@ function Footer() {
       <div className="container">
         <div className="footer-top">
           <div className="footer-brand">
-            <Link to="/" className="logo">TAIKA</Link>
-            <p>თანამედროვე ავეჯი თანამედროვე ცხოვრებისთვის. ვქმნით კომფორტს და სტილს შენს სივრცეში.</p>
+            <Link to="/" className="logo">WIND<span>LIFE</span></Link>
+            <p>საკანცელარიო მაღაზია სკოლისთვის, ოფისისა და შემოქმედებისთვის. ხარისხი, რომელიც ყოველდღე გეხმარება.</p>
             <div className="social-links">
               <a href="#" aria-label="Facebook">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -650,10 +719,11 @@ function Footer() {
           <div className="footer-links">
             <div className="footer-col">
               <h4>მაღაზია</h4>
-              <Link to="/category/chairs">სამისხდომო</Link>
-              <Link to="/category/tables">მაგიდები</Link>
-              <Link to="/category/beds">საწოლები</Link>
-              <Link to="/category/lighting">განათება</Link>
+              <Link to="/category/notebooks">რვეულები</Link>
+              <Link to="/category/pens">კალმები და ფანქრები</Link>
+              <Link to="/category/art">სახატავი მასალები</Link>
+              <Link to="/category/office">საოფისე ნივთები</Link>
+              <Link to="/category/school">ზურგჩანთები</Link>
             </div>
             <div className="footer-col">
               <h4>ინფორმაცია</h4>
@@ -665,13 +735,13 @@ function Footer() {
             <div className="footer-col">
               <h4>კონტაქტი</h4>
               <a href="tel:+995568222234">+995 555 12 34 56</a>
-              <a href="mailto:info@taika.ge">info@taika.ge</a>
+              <a href="mailto:info@windlife.ge">info@windlife.ge</a>
               <span>რუსთავი, საქართველო</span>
             </div>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; 2026 TAIKA. ყველა უფლება დაცულია.</p>
+          <p>&copy; 2026 Windlife. ყველა უფლება დაცულია.</p>
         </div>
       </div>
     </footer>
@@ -726,7 +796,7 @@ function BusinessPage() {
       </div>
       <div className="container business-content">
         <div className="business-info">
-          <h2>რატომ TAIKA?</h2>
+          <h2>რატომ Windlife?</h2>
           <div className="business-benefits">
             <div className="benefit">
               <div className="benefit-icon">
@@ -735,8 +805,8 @@ function BusinessPage() {
                 </svg>
               </div>
               <div>
-                <strong>ხარისხის გარანტია</strong>
-                <p>ყველა პროდუქტზე 5 წლიანი გარანტია</p>
+                <strong>ორიგინალი პროდუქცია</strong>
+                <p>მხოლოდ სანდო ბრენდები და სერტიფიცირებული მასალები</p>
               </div>
             </div>
             <div className="benefit">
@@ -748,7 +818,7 @@ function BusinessPage() {
               </div>
               <div>
                 <strong>სპეციალური ფასები</strong>
-                <p>კორპორატიული კლიენტებისთვის ინდივიდუალური ფასები</p>
+                <p>საბიუტო ფასები ოფისებისა და სკოლებისთვის</p>
               </div>
             </div>
             <div className="benefit">
@@ -761,8 +831,8 @@ function BusinessPage() {
                 </svg>
               </div>
               <div>
-                <strong>უფასო მიტანა და მონტაჟი</strong>
-                <p>საქართველოს მასშტაბით უფასო ტრანსპორტირება</p>
+                <strong>უფასო მიტანა ოფისში</strong>
+                <p>რეგულარული მარაგის შევსება დასახელებულ დროს</p>
               </div>
             </div>
             <div className="benefit">
@@ -851,7 +921,7 @@ function BusinessPage() {
                   onChange={handleChange}
                   required
                   rows={5}
-                  placeholder="აღწერეთ თქვენი საჭიროება: რა ტიპის ავეჯი გჭირდებათ, რაოდენობა, ვადები..."
+                  placeholder="აღწერეთ თქვენი საჭიროება: რომელი საკანცელარიო ნივთები გჭირდებათ, რაოდენობა, მიწოდების სიხშირე..."
                 />
               </div>
               <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
@@ -865,100 +935,96 @@ function BusinessPage() {
   )
 }
 
-/* ── Mattress Quiz ───────────────────────────────── */
+/* ── Stationery Quiz ─────────────────────────────── */
 type QuizAnswer = {
-  sleepPosition: string
-  firmness: string
-  bodyWeight: string
-  issue: string
+  forWhom: string
+  purpose: string
+  style: string
+  quantity: string
   budget: string
 }
 
 const quizSteps = [
   {
-    key: 'sleepPosition' as const,
-    question: 'როგორ გიყვარს ძილი?',
-    subtitle: 'აირჩიე შენი ძირითადი ძილის პოზა',
+    key: 'forWhom' as const,
+    question: 'ვისთვის ეძებ საკანცელარიოს?',
+    subtitle: 'აირჩიე ვინ იქნება მთავარი მომხმარებელი',
     options: [
-      { value: 'back', label: 'ზურგზე', icon: '🛌', desc: 'ზურგზე მწოლიარე' },
-      { value: 'side', label: 'გვერდზე', icon: '😴', desc: 'გვერდით მწოლიარე' },
-      { value: 'stomach', label: 'მუცელზე', icon: '🙇', desc: 'მუცელზე მწოლიარე' },
-      { value: 'mixed', label: 'შერეული', icon: '🔄', desc: 'პოზიციას ვიცვლი' },
+      { value: 'pupil', label: 'მოსწავლე', icon: '🎒', desc: 'სასკოლო საჭიროებები' },
+      { value: 'student', label: 'სტუდენტი', icon: '🎓', desc: 'ლექციები და შენიშვნები' },
+      { value: 'office', label: 'ოფისი', icon: '💼', desc: 'სამუშაო სივრცე' },
+      { value: 'artist', label: 'შემოქმედი', icon: '🎨', desc: 'ხატვა და შემოქმედება' },
     ],
   },
   {
-    key: 'firmness' as const,
-    question: 'რა სიმტკიცეს ანიჭებ უპირატესობას?',
-    subtitle: 'შენი კომფორტის პრეფერენცია',
+    key: 'purpose' as const,
+    question: 'რისთვის გჭირდება ყველაზე მეტად?',
+    subtitle: 'შენი ძირითადი აქტივობა',
     options: [
-      { value: 'soft', label: 'რბილი', icon: '☁️', desc: 'ჩაეფლობა სხეული' },
-      { value: 'medium', label: 'საშუალო', icon: '⚖️', desc: 'ბალანსი კომფორტსა და მხარდაჭერას შორის' },
-      { value: 'firm', label: 'მაგარი', icon: '🪨', desc: 'მტკიცე ზედაპირი' },
-      { value: 'unsure', label: 'არ ვიცი', icon: '🤔', desc: 'დამეხმარეთ არჩევაში' },
+      { value: 'writing', label: 'წერა', icon: '✍️', desc: 'ჩანაწერები და კონსპექტი' },
+      { value: 'drawing', label: 'ხატვა', icon: '🖌️', desc: 'სკეტჩი და ილუსტრაცია' },
+      { value: 'planning', label: 'დაგეგმვა', icon: '🗓️', desc: 'პლანერი და ორგანაიზერი' },
+      { value: 'organizing', label: 'ორგანიზება', icon: '🗂️', desc: 'საქაღალდეები და არქივი' },
     ],
   },
   {
-    key: 'bodyWeight' as const,
-    question: 'რა არის შენი სხეულის წონა?',
-    subtitle: 'ეს გვეხმარება სწორი მხარდაჭერის შერჩევაში',
+    key: 'style' as const,
+    question: 'რომელი სტილი გიყვარს?',
+    subtitle: 'ეს გვეხმარება სწორი დიზაინის შერჩევაში',
     options: [
-      { value: 'light', label: '60 კგ-მდე', icon: '🪶', desc: 'მსუბუქი' },
-      { value: 'medium', label: '60-90 კგ', icon: '👤', desc: 'საშუალო' },
-      { value: 'heavy', label: '90 კგ+', icon: '💪', desc: 'მძიმე' },
+      { value: 'classic', label: 'კლასიკური', icon: '🖤', desc: 'მინიმალისტური, მკაფიო' },
+      { value: 'colorful', label: 'ფერადი', icon: '🌈', desc: 'ცოცხალი და მხიარული' },
+      { value: 'premium', label: 'პრემიუმ', icon: '✨', desc: 'ტყავი, ნატურალური მასალები' },
     ],
   },
   {
-    key: 'issue' as const,
-    question: 'რა პრობლემა გაწუხებს ძილისას?',
-    subtitle: 'აირჩიე ყველაზე აქტუალური',
+    key: 'quantity' as const,
+    question: 'რა რაოდენობა გჭირდება?',
+    subtitle: 'აირჩიე შესაფერისი ვარიანტი',
     options: [
-      { value: 'back-pain', label: 'ზურგის ტკივილი', icon: '🩺', desc: 'ტკივილი ზურგში ან წელში' },
-      { value: 'hot', label: 'ცხელა', icon: '🌡️', desc: 'ცხელა ძილისას' },
-      { value: 'partner', label: 'პარტნიორის მოძრაობა', icon: '👥', desc: 'პარტნიორი მაღვიძებს' },
-      { value: 'none', label: 'არაფერი', icon: '✅', desc: 'პრობლემა არ მაქვს' },
+      { value: 'single', label: 'რამდენიმე ნივთი', icon: '☝️', desc: 'პირადი გამოყენებისთვის' },
+      { value: 'set', label: 'სრული ნაკრები', icon: '📦', desc: 'სასწავლო წლისთვის' },
+      { value: 'bulk', label: 'ბევრი', icon: '🏢', desc: 'კლასის ან ოფისისთვის' },
     ],
   },
   {
     key: 'budget' as const,
     question: 'რა ბიუჯეტი გაქვს?',
-    subtitle: 'შეარჩიე შენთვის შესაფერისი ფასის დიაპაზონი',
+    subtitle: 'ფასის დიაპაზონი ერთ ნივთზე',
     options: [
-      { value: 'low', label: '1500₾-მდე', icon: '💰', desc: 'ეკონომიური' },
-      { value: 'mid', label: '1500-2500₾', icon: '💎', desc: 'საშუალო კლასი' },
-      { value: 'high', label: '2500₾+', icon: '👑', desc: 'პრემიუმ' },
+      { value: 'low', label: '20₾-მდე', icon: '💰', desc: 'ეკონომიური' },
+      { value: 'mid', label: '20-60₾', icon: '💎', desc: 'საშუალო კლასი' },
+      { value: 'high', label: '60₾+', icon: '👑', desc: 'პრემიუმ' },
     ],
   },
 ]
 
-function getQuizResults(answers: QuizAnswer, productsList: Product[]): Product[] {
-  return productsList
-    .filter((p) => p.category === 'beds')
-    .sort((a, b) => {
-      let scoreA = 0
-      let scoreB = 0
-
-      if (answers.budget === 'low') {
-        if (a.price <= 1500) scoreA += 3
-        if (b.price <= 1500) scoreB += 3
-      } else if (answers.budget === 'mid') {
-        if (a.price > 1500 && a.price <= 2500) scoreA += 3
-        if (b.price > 1500 && b.price <= 2500) scoreB += 3
-      } else {
-        if (a.price > 2500) scoreA += 3
-        if (b.price > 2500) scoreB += 3
-      }
-
-      if (a.tag === 'ბესტსელერი') scoreA += 2
-      if (b.tag === 'ბესტსელერი') scoreB += 2
-      if (a.originalPrice) scoreA += 1
-      if (b.originalPrice) scoreB += 1
-
-      return scoreB - scoreA
-    })
-    .slice(0, 3)
+const quizCategoryMap: Record<string, string[]> = {
+  pupil: ['school', 'notebooks', 'pens'],
+  student: ['notebooks', 'pens', 'office'],
+  office: ['office', 'pens', 'notebooks'],
+  artist: ['art', 'notebooks', 'pens'],
 }
 
-function MattressQuizPage() {
+function getQuizResults(answers: QuizAnswer, productsList: Product[]): Product[] {
+  const preferred = quizCategoryMap[answers.forWhom] ?? []
+  const inBudget = (price: number) =>
+    answers.budget === 'low' ? price <= 20 : answers.budget === 'mid' ? price > 20 && price <= 60 : price > 60
+
+  const score = (p: Product) => {
+    let s = 0
+    const catIndex = preferred.indexOf(p.category)
+    if (catIndex !== -1) s += 3 - catIndex
+    if (inBudget(p.price)) s += 3
+    if (p.tag === 'ბესტსელერი') s += 2
+    if (p.originalPrice) s += 1
+    return s
+  }
+
+  return [...productsList].sort((a, b) => score(b) - score(a)).slice(0, 3)
+}
+
+function StationeryQuizPage() {
   const { products } = useData()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Partial<QuizAnswer>>({})
@@ -998,7 +1064,7 @@ function MattressQuizPage() {
       <div className="quiz-hero">
         <div className="container">
           <span className="section-tag">ქვიზი</span>
-          <h1>იპოვე შენი იდეალური საწოლი</h1>
+          <h1>იპოვე შენი იდეალური საკანცელარიო</h1>
           <p>უპასუხე 5 კითხვას და ჩვენ შეგარჩევთ საუკეთესო ვარიანტს</p>
         </div>
       </div>
@@ -1053,7 +1119,7 @@ function MattressQuizPage() {
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
               <h2>შენი რეკომენდაციები</h2>
-              <p>შენი პასუხების საფუძველზე, ეს საწოლები საუკეთესოდ მოგერგება</p>
+              <p>შენი პასუხების საფუძველზე, ეს ნივთები საუკეთესოდ მოგერგება</p>
             </div>
 
             <div className="quiz-results-grid">
@@ -1090,8 +1156,8 @@ function MattressQuizPage() {
               <button className="btn btn-outline" onClick={handleRestart}>
                 თავიდან დაწყება
               </button>
-              <Link to="/category/beds" className="btn btn-primary">
-                ყველა საწოლის ნახვა
+              <Link to="/category/notebooks" className="btn btn-primary">
+                ყველა პროდუქტის ნახვა
               </Link>
             </div>
           </div>
@@ -1106,20 +1172,21 @@ function HomePage() {
   return (
     <>
       <HeroSlider />
+      <CollectionsSection />
       <CategoriesSection />
       <div className="quiz-cta">
         <div className="container">
           <div className="quiz-cta-inner">
             <div className="quiz-cta-visual">
-              <span className="quiz-cta-icon">🛏️</span>
+              <span className="quiz-cta-icon">🎒</span>
               <div className="quiz-cta-dots">
                 <span /><span /><span />
               </div>
             </div>
             <div className="quiz-cta-content">
               <span className="quiz-cta-badge">ინტერაქტიული ქვიზი</span>
-              <h2>ვერ ირჩევ საწოლს?</h2>
-              <p>უპასუხე სულ რაღაც <strong>5 მარტივ კითხვას</strong> და ჩვენი ალგორითმი შეგარჩევს შენთვის იდეალურ საწოლს — ძილის პოზის, სხეულის წონისა და ბიუჯეტის გათვალისწინებით.</p>
+              <h2>ვერ არჩევ რა იყიდო?</h2>
+              <p>უპასუხე სულ რაღაც <strong>5 მარტივ კითხვას</strong> და ჩვენ შეგირჩევთ საკანცელარიოს — სკოლისთვის, უნივერსიტეტისთვის, ოფისისთვის ან შემოქმედებისთვის.</p>
               <div className="quiz-cta-features">
                 <div className="quiz-cta-feat">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
@@ -1142,34 +1209,34 @@ function HomePage() {
           </div>
         </div>
       </div>
-      <div className="mattress-cta">
+      <div className="builder-cta">
         <div className="container">
           <div className="quiz-cta-inner">
             <div className="quiz-cta-visual">
-              <span className="quiz-cta-icon">🛏️</span>
+              <span className="quiz-cta-icon">�</span>
               <div className="quiz-cta-dots">
                 <span /><span /><span />
               </div>
             </div>
             <div className="quiz-cta-content">
               <span className="quiz-cta-badge">კონფიგურატორი</span>
-              <h2>ააწყვე შენი იდეალური მატრასი</h2>
-              <p>აირჩიე ზომა, მასალა, სიმტკიცე და გარსაცმი — შექმენი <strong>ზუსტად შენზე მორგებული</strong> მატრასი 4 მარტივ ნაბიჯში.</p>
+              <h2>ააწყვე შენი რვეული</h2>
+              <p>აირჩიე ფორმატი, ქაღალდი, ფურცლების რაოდენობა და ყდა — შექმენი <strong>ზუსტად შენზე მორგებული</strong> რვეული 4 მარტივ ნაბიჯში.</p>
               <div className="quiz-cta-features">
                 <div className="quiz-cta-feat">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" /></svg>
-                  <span>6 ზომა</span>
+                  <span>4 ფორმატი</span>
                 </div>
                 <div className="quiz-cta-feat">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
-                  <span>5 მასალა</span>
+                  <span>5 ქაღალდის ტიპი</span>
                 </div>
                 <div className="quiz-cta-feat">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
-                  <span>₾450-დან</span>
+                  <span>₾8-დან</span>
                 </div>
               </div>
-              <Link to="/mattress" className="btn btn-primary quiz-cta-btn">
+              <Link to="/notebook-builder" className="btn btn-primary quiz-cta-btn">
                 აწყობის დაწყება
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
               </Link>
@@ -1182,69 +1249,59 @@ function HomePage() {
   )
 }
 
-/* ── Mattress Builder Page ────────────────────────── */
+/* ── Notebook Builder Page ────────────────────────── */
 
-const mattressSizes = [
-  { key: '90x190', label: 'ერთადგილიანი', dims: '90 × 190 სმ', icon: '👤' },
-  { key: '120x190', label: 'ნახევარნახევარი', dims: '120 × 190 სმ', icon: '👤+' },
-  { key: '140x200', label: 'ორადგილიანი S', dims: '140 × 200 სმ', icon: '👥' },
-  { key: '160x200', label: 'ორადგილიანი M', dims: '160 × 200 სმ', icon: '👥' },
-  { key: '180x200', label: 'ორადგილიანი L', dims: '180 × 200 სმ', icon: '👫' },
-  { key: '200x200', label: 'King Size', dims: '200 × 200 სმ', icon: '👑' },
+const notebookFormats = [
+  { key: 'a6', label: 'ჯიბის (A6)', dims: '105 × 148 მმ', icon: '📒', price: 8 },
+  { key: 'a5', label: 'სტანდარტული (A5)', dims: '148 × 210 მმ', icon: '📓', price: 12 },
+  { key: 'b5', label: 'სტუდენტური (B5)', dims: '176 × 250 მმ', icon: '📔', price: 15 },
+  { key: 'a4', label: 'დიდი (A4)', dims: '210 × 297 მმ', icon: '📕', price: 18 },
 ]
 
-const mattressMaterials = [
-  { key: 'spring', label: 'ზამბარის ბლოკი', desc: 'კლასიკური მხარდაჭერა, კარგი ვენტილაცია', icon: '🔩', priceAdd: 0 },
-  { key: 'pocket', label: 'დამოუკიდებელი ზამბარები', desc: 'იზოლირებული მოძრაობა, ორთოპედიული ეფექტი', icon: '🎯', priceAdd: 200 },
-  { key: 'foam', label: 'მეხსიერების ქაფი', desc: 'სხეულის ფორმას იღებს, მაქსიმალური კომფორტი', icon: '☁️', priceAdd: 350 },
-  { key: 'latex', label: 'ლატექსი', desc: 'ბუნებრივი მასალა, ჰიპოალერგიული, გამძლე', icon: '🌿', priceAdd: 500 },
-  { key: 'hybrid', label: 'ჰიბრიდი', desc: 'ზამბარი + ქაფი — საუკეთესო ორივე სამყაროდან', icon: '⚡', priceAdd: 450 },
+const notebookPapers = [
+  { key: 'lined', label: 'ხაზიანი', desc: 'კლასიკური ვარიანტი წერისა და კონსპექტისთვის', icon: '📝', priceAdd: 0 },
+  { key: 'grid', label: 'უჯრიანი', desc: 'მათემატიკისთვის, ცხრილებისა და სქემებისთვის', icon: '🔲', priceAdd: 0 },
+  { key: 'dotted', label: 'წერტილოვანი', desc: 'Bullet journal-ისა და დაგეგმვისთვის', icon: '⬚', priceAdd: 2 },
+  { key: 'blank', label: 'სუფთა', desc: 'სკეტჩებისა და თავისუფალი იდეებისთვის', icon: '📄', priceAdd: 2 },
+  { key: 'sketch', label: 'სქეტჩის ქაღალდი (120 გ/მ²)', desc: 'სქელი ქაღალდი მარკერისა და აქვარელისთვის', icon: '🎨', priceAdd: 6 },
 ]
 
-const mattressFirmness = [
-  { key: 'soft', label: 'რბილი', desc: 'გვერდზე მძინარეთათვის', level: 1 },
-  { key: 'medium', label: 'საშუალო', desc: 'უნივერსალური', level: 2 },
-  { key: 'firm', label: 'მაგარი', desc: 'ზურგზე/მუცელზე მძინარეთათვის', level: 3 },
-  { key: 'extra-firm', label: 'ძალიან მაგარი', desc: 'ორთოპედიული', level: 4 },
+const notebookPages = [
+  { key: '48', label: '48 ფურცელი', desc: 'მსუბუქი, ჩანთაში დასატარებლად', level: 1, priceAdd: 0 },
+  { key: '96', label: '96 ფურცელი', desc: 'უნივერსალური', level: 2, priceAdd: 4 },
+  { key: '160', label: '160 ფურცელი', desc: 'მთელი სემესტროსთვის', level: 3, priceAdd: 8 },
+  { key: '200', label: '200 ფურცელი', desc: 'მრავალსაგნიანი', level: 4, priceAdd: 12 },
 ]
 
-const mattressCovers = [
-  { key: 'cotton', label: 'ბამბა', icon: '🧵', priceAdd: 0 },
-  { key: 'bamboo', label: 'ბამბუკი', icon: '🎋', priceAdd: 80 },
-  { key: 'aloe', label: 'ალოე ვერა', icon: '🌱', priceAdd: 120 },
-  { key: 'cashmere', label: 'კაშმირი', icon: '✨', priceAdd: 250 },
+const notebookCovers = [
+  { key: 'soft', label: 'რბილი', icon: '📃', priceAdd: 0 },
+  { key: 'hard', label: 'მაყარი', icon: '📘', priceAdd: 5 },
+  { key: 'kraft', label: 'კრაფტი', icon: '🌿', priceAdd: 4 },
+  { key: 'leather', label: 'ტყავის', icon: '✨', priceAdd: 25 },
 ]
 
-function getMattressBasePrice(size: string): number {
-  const prices: Record<string, number> = {
-    '90x190': 450, '120x190': 580, '140x200': 720,
-    '160x200': 850, '180x200': 980, '200x200': 1150,
-  }
-  return prices[size] || 600
-}
-
-function MattressBuilderPage() {
+function NotebookBuilderPage() {
   const [step, setStep] = useState(0)
-  const [size, setSize] = useState('')
-  const [material, setMaterial] = useState('')
-  const [firmness, setFirmness] = useState('')
+  const [format, setFormat] = useState('')
+  const [paper, setPaper] = useState('')
+  const [pages, setPages] = useState('')
   const [cover, setCover] = useState('')
   const [showResult, setShowResult] = useState(false)
 
   useEffect(() => { window.scrollTo(0, 0) }, [])
 
   const steps = [
-    { title: 'ზომა', subtitle: 'აირჩიე მატრასის ზომა' },
-    { title: 'მასალა', subtitle: 'რა ტიპის მატრასი გსურს?' },
-    { title: 'სიმტკიცე', subtitle: 'რა სიმტკიცეს ანიჭებ უპირატესობას?' },
-    { title: 'გარსაცმი', subtitle: 'აირჩიე გარსაცმის მასალა' },
+    { title: 'ფორმატი', subtitle: 'აირჩიე რვეულის ფორმატი' },
+    { title: 'ქაღალდი', subtitle: 'რომელი ქაღალდი გინდა?' },
+    { title: 'ფურცლები', subtitle: 'რამდენი ფურცელი გჭირდება?' },
+    { title: 'ყდა', subtitle: 'აირჩიე ყდის ტიპი' },
   ]
 
   const progress = ((step + 1) / steps.length) * 100
 
-  const handleSelectSize = (key: string) => { setSize(key); setStep(1) }
-  const handleSelectMaterial = (key: string) => { setMaterial(key); setStep(2) }
-  const handleSelectFirmness = (key: string) => { setFirmness(key); setStep(3) }
+  const handleSelectFormat = (key: string) => { setFormat(key); setStep(1) }
+  const handleSelectPaper = (key: string) => { setPaper(key); setStep(2) }
+  const handleSelectPages = (key: string) => { setPages(key); setStep(3) }
   const handleSelectCover = (key: string) => { setCover(key); setShowResult(true) }
 
   const handleBack = () => {
@@ -1253,25 +1310,26 @@ function MattressBuilderPage() {
   }
 
   const handleRestart = () => {
-    setStep(0); setSize(''); setMaterial(''); setFirmness(''); setCover(''); setShowResult(false)
+    setStep(0); setFormat(''); setPaper(''); setPages(''); setCover(''); setShowResult(false)
   }
 
-  const totalPrice = getMattressBasePrice(size)
-    + (mattressMaterials.find(m => m.key === material)?.priceAdd || 0)
-    + (mattressCovers.find(c => c.key === cover)?.priceAdd || 0)
+  const selectedFormat = notebookFormats.find(f => f.key === format)
+  const selectedPaper = notebookPapers.find(p => p.key === paper)
+  const selectedPages = notebookPages.find(p => p.key === pages)
+  const selectedCover = notebookCovers.find(c => c.key === cover)
 
-  const selectedSize = mattressSizes.find(s => s.key === size)
-  const selectedMaterial = mattressMaterials.find(m => m.key === material)
-  const selectedFirmness = mattressFirmness.find(f => f.key === firmness)
-  const selectedCover = mattressCovers.find(c => c.key === cover)
+  const totalPrice = (selectedFormat?.price || 0)
+    + (selectedPaper?.priceAdd || 0)
+    + (selectedPages?.priceAdd || 0)
+    + (selectedCover?.priceAdd || 0)
 
   return (
-    <section className="mattress-builder-page">
+    <section className="builder-page">
       <div className="mb-hero">
         <div className="container">
           <span className="section-tag">კონფიგურატორი</span>
-          <h1>ააწყვე შენი იდეალური მატრასი</h1>
-          <p>აირჩიე ზომა, მასალა, სიმტკიცე და გარსაცმი — შექმენი ზუსტად შენზე მორგებული მატრასი</p>
+          <h1>ააწყვე შენი რვეული</h1>
+          <p>აირჩიე ფორმატი, ქაღალდი, ფურცლების რაოდენობა და ყდა — შექმენი ზუსტად შენზე მორგებული რვეული</p>
         </div>
       </div>
 
@@ -1281,24 +1339,24 @@ function MattressBuilderPage() {
           <div className="mb-summary">
             <h4>შენი კონფიგურაცია</h4>
             <div className="mb-summary-items">
-              <div className={`mb-summary-item ${size ? 'filled' : ''}`}>
-                <span className="mb-sum-label">ზომა</span>
-                <span className="mb-sum-value">{selectedSize ? `${selectedSize.label} (${selectedSize.dims})` : '—'}</span>
+              <div className={`mb-summary-item ${format ? 'filled' : ''}`}>
+                <span className="mb-sum-label">ფორმატი</span>
+                <span className="mb-sum-value">{selectedFormat ? `${selectedFormat.label} (${selectedFormat.dims})` : '—'}</span>
               </div>
-              <div className={`mb-summary-item ${material ? 'filled' : ''}`}>
-                <span className="mb-sum-label">მასალა</span>
-                <span className="mb-sum-value">{selectedMaterial ? selectedMaterial.label : '—'}</span>
+              <div className={`mb-summary-item ${paper ? 'filled' : ''}`}>
+                <span className="mb-sum-label">ქაღალდი</span>
+                <span className="mb-sum-value">{selectedPaper ? selectedPaper.label : '—'}</span>
               </div>
-              <div className={`mb-summary-item ${firmness ? 'filled' : ''}`}>
-                <span className="mb-sum-label">სიმტკიცე</span>
-                <span className="mb-sum-value">{selectedFirmness ? selectedFirmness.label : '—'}</span>
+              <div className={`mb-summary-item ${pages ? 'filled' : ''}`}>
+                <span className="mb-sum-label">ფურცლები</span>
+                <span className="mb-sum-value">{selectedPages ? selectedPages.label : '—'}</span>
               </div>
               <div className={`mb-summary-item ${cover ? 'filled' : ''}`}>
-                <span className="mb-sum-label">გარსაცმი</span>
+                <span className="mb-sum-label">ყდა</span>
                 <span className="mb-sum-value">{selectedCover ? selectedCover.label : '—'}</span>
               </div>
             </div>
-            {(size || material || cover) && (
+            {(format || paper || pages || cover) && (
               <div className="mb-summary-price">
                 <span>სავარაუდო ფასი</span>
                 <strong>₾{totalPrice}</strong>
@@ -1323,48 +1381,49 @@ function MattressBuilderPage() {
               </>
             )}
 
-            {/* Step 0: Size */}
+            {/* Step 0: Format */}
             {!showResult && step === 0 && (
-              <div className="mb-options-grid cols-3">
-                {mattressSizes.map(s => (
-                  <button key={s.key} className={`mb-option ${size === s.key ? 'selected' : ''}`} onClick={() => handleSelectSize(s.key)}>
-                    <span className="mb-opt-icon">{s.icon}</span>
-                    <span className="mb-opt-label">{s.label}</span>
-                    <span className="mb-opt-desc">{s.dims}</span>
-                    <span className="mb-opt-price">₾{getMattressBasePrice(s.key)}-დან</span>
+              <div className="mb-options-grid cols-4">
+                {notebookFormats.map(f => (
+                  <button key={f.key} className={`mb-option ${format === f.key ? 'selected' : ''}`} onClick={() => handleSelectFormat(f.key)}>
+                    <span className="mb-opt-icon">{f.icon}</span>
+                    <span className="mb-opt-label">{f.label}</span>
+                    <span className="mb-opt-desc">{f.dims}</span>
+                    <span className="mb-opt-price">₾{f.price}-დან</span>
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Step 1: Material */}
+            {/* Step 1: Paper */}
             {!showResult && step === 1 && (
               <div className="mb-options-grid cols-1">
-                {mattressMaterials.map(m => (
-                  <button key={m.key} className={`mb-option-row ${material === m.key ? 'selected' : ''}`} onClick={() => handleSelectMaterial(m.key)}>
-                    <span className="mb-opt-icon">{m.icon}</span>
+                {notebookPapers.map(p => (
+                  <button key={p.key} className={`mb-option-row ${paper === p.key ? 'selected' : ''}`} onClick={() => handleSelectPaper(p.key)}>
+                    <span className="mb-opt-icon">{p.icon}</span>
                     <div className="mb-opt-text">
-                      <span className="mb-opt-label">{m.label}</span>
-                      <span className="mb-opt-desc">{m.desc}</span>
+                      <span className="mb-opt-label">{p.label}</span>
+                      <span className="mb-opt-desc">{p.desc}</span>
                     </div>
-                    {m.priceAdd > 0 && <span className="mb-opt-add">+₾{m.priceAdd}</span>}
+                    {p.priceAdd > 0 && <span className="mb-opt-add">+₾{p.priceAdd}</span>}
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Step 2: Firmness */}
+            {/* Step 2: Pages */}
             {!showResult && step === 2 && (
               <div className="mb-options-grid cols-4">
-                {mattressFirmness.map(f => (
-                  <button key={f.key} className={`mb-option ${firmness === f.key ? 'selected' : ''}`} onClick={() => handleSelectFirmness(f.key)}>
+                {notebookPages.map(p => (
+                  <button key={p.key} className={`mb-option ${pages === p.key ? 'selected' : ''}`} onClick={() => handleSelectPages(p.key)}>
                     <div className="mb-firmness-bar">
                       {[1, 2, 3, 4].map(i => (
-                        <span key={i} className={`mb-firm-dot ${i <= f.level ? 'active' : ''}`} />
+                        <span key={i} className={`mb-firm-dot ${i <= p.level ? 'active' : ''}`} />
                       ))}
                     </div>
-                    <span className="mb-opt-label">{f.label}</span>
-                    <span className="mb-opt-desc">{f.desc}</span>
+                    <span className="mb-opt-label">{p.label}</span>
+                    <span className="mb-opt-desc">{p.desc}</span>
+                    {p.priceAdd > 0 && <span className="mb-opt-add">+₾{p.priceAdd}</span>}
                   </button>
                 ))}
               </div>
@@ -1373,7 +1432,7 @@ function MattressBuilderPage() {
             {/* Step 3: Cover */}
             {!showResult && step === 3 && (
               <div className="mb-options-grid cols-4">
-                {mattressCovers.map(c => (
+                {notebookCovers.map(c => (
                   <button key={c.key} className={`mb-option ${cover === c.key ? 'selected' : ''}`} onClick={() => handleSelectCover(c.key)}>
                     <span className="mb-opt-icon">{c.icon}</span>
                     <span className="mb-opt-label">{c.label}</span>
@@ -1390,37 +1449,37 @@ function MattressBuilderPage() {
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
-                  <h3>შენი მატრასი მზადაა!</h3>
+                  <h3>შენი რვეული მზადაა!</h3>
                   <p>აი, შენი კონფიგურაციის შეჯამება</p>
                 </div>
 
                 <div className="mb-result-specs">
                   <div className="mb-result-spec">
-                    <span className="mb-rs-icon">{selectedSize?.icon}</span>
+                    <span className="mb-rs-icon">{selectedFormat?.icon}</span>
                     <div>
-                      <strong>{selectedSize?.label}</strong>
-                      <span>{selectedSize?.dims}</span>
+                      <strong>{selectedFormat?.label}</strong>
+                      <span>{selectedFormat?.dims}</span>
                     </div>
                   </div>
                   <div className="mb-result-spec">
-                    <span className="mb-rs-icon">{selectedMaterial?.icon}</span>
+                    <span className="mb-rs-icon">{selectedPaper?.icon}</span>
                     <div>
-                      <strong>{selectedMaterial?.label}</strong>
-                      <span>{selectedMaterial?.desc}</span>
+                      <strong>{selectedPaper?.label}</strong>
+                      <span>{selectedPaper?.desc}</span>
                     </div>
                   </div>
                   <div className="mb-result-spec">
-                    <span className="mb-rs-icon">💪</span>
+                    <span className="mb-rs-icon">📚</span>
                     <div>
-                      <strong>{selectedFirmness?.label}</strong>
-                      <span>{selectedFirmness?.desc}</span>
+                      <strong>{selectedPages?.label}</strong>
+                      <span>{selectedPages?.desc}</span>
                     </div>
                   </div>
                   <div className="mb-result-spec">
                     <span className="mb-rs-icon">{selectedCover?.icon}</span>
                     <div>
-                      <strong>{selectedCover?.label} გარსაცმი</strong>
-                      <span>მოხსნადი და ქიმწმენდადი</span>
+                      <strong>{selectedCover?.label} ყდა</strong>
+                      <span>გამძლე და მოსახერხებელი ყოველდღიური გამოყენებისთვის</span>
                     </div>
                   </div>
                 </div>
@@ -1449,6 +1508,184 @@ function MattressBuilderPage() {
             )}
           </div>
         </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── Collection Page ─────────────────────────────── */
+const COLLECTION_PAGE_SIZE = 24
+
+function toProduct(p: CollectionProductsResponse['items'][number]): Product {
+  return { ...p, originalPrice: p.originalPrice ?? undefined, tag: p.tag ?? undefined }
+}
+
+function CollectionRoute() {
+  const { slug = '' } = useParams<{ slug: string }>()
+  return <CollectionPage key={slug} slug={slug} />
+}
+
+function CollectionPage({ slug }: { slug: string }) {
+  const { categories } = useData()
+  const [collection, setCollection] = useState<CollectionResponse | null>(null)
+  const [notFound, setNotFound] = useState(false)
+
+  const [category, setCategory] = useState('')
+  const [sortBy, setSortBy] = useState('')
+  const [onSale, setOnSale] = useState(false)
+  const [priceDraft, setPriceDraft] = useState({ min: '', max: '' })
+  const [price, setPrice] = useState<{ min?: number; max?: number }>({})
+  const [page, setPage] = useState(1)
+
+  const [result, setResult] = useState<CollectionProductsResponse | null>(null)
+  const [items, setItems] = useState<Product[]>([])
+  const [loadedKey, setLoadedKey] = useState('')
+
+  const queryKey = JSON.stringify({ category, sortBy, onSale, price, page })
+  const loadingProducts = loadedKey !== queryKey
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    collectionsApi.getBySlug(slug).then(setCollection).catch(() => setNotFound(true))
+  }, [slug])
+
+  useEffect(() => {
+    let cancelled = false
+    collectionsApi.getProducts(slug, {
+      category: category || undefined,
+      minPrice: price.min,
+      maxPrice: price.max,
+      onSale,
+      sortBy: sortBy || undefined,
+      page,
+      pageSize: COLLECTION_PAGE_SIZE,
+    }).then(res => {
+      if (cancelled) return
+      const mapped = res.items.map(toProduct)
+      setResult(res)
+      setItems(prev => (page === 1 ? mapped : [...prev, ...mapped]))
+      setLoadedKey(queryKey)
+    }).catch(err => {
+      if (!cancelled) console.error('Failed to load collection products:', err)
+    })
+    return () => { cancelled = true }
+  }, [slug, category, sortBy, onSale, price, page, queryKey])
+
+  const applyPrice = (e: React.FormEvent) => {
+    e.preventDefault()
+    setPrice({
+      min: priceDraft.min === '' ? undefined : Number(priceDraft.min),
+      max: priceDraft.max === '' ? undefined : Number(priceDraft.max),
+    })
+    setPage(1)
+  }
+
+  const resetFilters = () => {
+    setCategory('')
+    setOnSale(false)
+    setPriceDraft({ min: '', max: '' })
+    setPrice({})
+    setPage(1)
+  }
+
+  const hasActiveFilters = category !== '' || onSale || price.min !== undefined || price.max !== undefined
+  const categoryName = (s: string) => categories.find(c => c.slug === s)?.name ?? s
+
+  if (notFound) {
+    return (
+      <div className="container" style={{ padding: '120px 40px', textAlign: 'center' }}>
+        <h2>კოლექცია ვერ მოიძებნა</h2>
+        <p style={{ margin: '16px 0 32px', color: 'var(--secondary)' }}>კოლექცია არ არსებობს ან აღარ არის აქტიური.</p>
+        <Link to="/" className="btn btn-primary">მთავარ გვერდზე დაბრუნება</Link>
+      </div>
+    )
+  }
+
+  if (!collection) {
+    return <div className="container collection-loading">იტვირთება...</div>
+  }
+
+  return (
+    <section className="collection-page">
+      <div className="collection-hero">
+        <img src={collection.bannerImage ?? collection.coverImage} alt={collection.name} className="collection-hero-bg" />
+        <div className="collection-hero-overlay">
+          <div className="container">
+            <span className="collection-hero-tag">კოლექცია</span>
+            <h1>{collection.name}</h1>
+            {collection.description && <p>{collection.description}</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className="container">
+        <form className="collection-filters" onSubmit={applyPrice}>
+          <select
+            className="sort-select"
+            value={category}
+            onChange={e => { setCategory(e.target.value); setPage(1) }}
+            aria-label="კატეგორია"
+          >
+            <option value="">ყველა კატეგორია</option>
+            {result?.availableCategories.map(s => (
+              <option key={s} value={s}>{categoryName(s)}</option>
+            ))}
+          </select>
+
+          <div className="price-range">
+            <input
+              type="number" min={0} step="0.01" placeholder="ფასი ₾-დან" aria-label="მინიმალური ფასი"
+              value={priceDraft.min} onChange={e => setPriceDraft({ ...priceDraft, min: e.target.value })}
+            />
+            <span>—</span>
+            <input
+              type="number" min={0} step="0.01" placeholder="₾-მდე" aria-label="მაქსიმალური ფასი"
+              value={priceDraft.max} onChange={e => setPriceDraft({ ...priceDraft, max: e.target.value })}
+            />
+            <button type="submit" className="btn btn-outline btn-sm">გაფილტვრა</button>
+          </div>
+
+          <label className="checkbox-label">
+            <input type="checkbox" checked={onSale} onChange={e => { setOnSale(e.target.checked); setPage(1) }} />
+            მხოლოდ ფასდაკლებული
+          </label>
+
+          <select
+            className="sort-select"
+            value={sortBy}
+            onChange={e => { setSortBy(e.target.value); setPage(1) }}
+            aria-label="დალაგება"
+          >
+            <option value="">რეკომენდებული</option>
+            <option value="price-asc">ფასი: დაბალიდან</option>
+            <option value="price-desc">ფასი: მაღალიდან</option>
+            <option value="name">სახელით</option>
+            <option value="newest">უახლესი</option>
+          </select>
+        </form>
+
+        <div className="catalog-toolbar">
+          <span className="results-count">{result ? `${result.totalCount} ნივთი ნაპოვნია` : 'იტვირთება...'}</span>
+          {hasActiveFilters && (
+            <button type="button" className="btn btn-outline btn-sm" onClick={resetFilters}>ფილტრების გასუფთავება</button>
+          )}
+        </div>
+
+        {items.length === 0 && !loadingProducts ? (
+          <div className="collection-empty">ამ ფილტრებით პროდუქტი ვერ მოიძებნა.</div>
+        ) : (
+          <div className="products-grid">
+            {items.map(product => <ProductCard key={product.id} product={product} />)}
+          </div>
+        )}
+
+        {result && items.length < result.totalCount && (
+          <div className="products-cta">
+            <button className="btn btn-outline" disabled={loadingProducts} onClick={() => setPage(p => p + 1)}>
+              {loadingProducts ? 'იტვირთება...' : 'მეტის ჩატვირთვა'}
+            </button>
+          </div>
+        )}
       </div>
     </section>
   )
@@ -2045,7 +2282,7 @@ function ProductDetailPage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
-                <span>5 წლიანი გარანტია</span>
+                <span>ორიგინალი პროდუქცია</span>
               </div>
               <div className="guarantee-item">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2061,7 +2298,7 @@ function ProductDetailPage() {
                   <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                   <polyline points="17 6 23 6 23 12" />
                 </svg>
-                <span>30 დღიანი დაბრუნება</span>
+                <span>14 დღიანი დაბრუნება</span>
               </div>
             </div>
           </div>
@@ -2102,16 +2339,16 @@ function useAuth() {
 }
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('taika-admin-token'))
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('windlife-admin-token'))
 
   const login = useCallback(async (username: string, password: string) => {
     const res = await authApi.login(username, password)
-    localStorage.setItem('taika-admin-token', res.token)
+    localStorage.setItem('windlife-admin-token', res.token)
     setIsAuthenticated(true)
   }, [])
 
   const logout = useCallback(() => {
-    localStorage.removeItem('taika-admin-token')
+    localStorage.removeItem('windlife-admin-token')
     setIsAuthenticated(false)
   }, [])
 
@@ -2209,7 +2446,7 @@ function AdminPage() {
   const { categories, heroSlides, products, addCategory, updateCategory, removeCategory, addSlide, removeSlide, addProduct, updateProduct, removeProduct } = useData()
   const { logout } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'categories' | 'products' | 'slides'>('categories')
+  const [activeTab, setActiveTab] = useState<'categories' | 'products' | 'slides' | 'collections'>('categories')
 
   // Category form
   const [catForm, setCatForm] = useState({ name: '', slug: '', description: '', image: '', icon: '', count: 0 })
@@ -2221,7 +2458,7 @@ function AdminPage() {
   const [prodFilterCat, setProdFilterCat] = useState<string>('all')
 
   // Slide form
-  const [slideForm, setSlideForm] = useState({ title: '', subtitle: '', description: '', image: '', buttonText: '', buttonLink: '', accent: '#C9A96E' })
+  const [slideForm, setSlideForm] = useState({ title: '', subtitle: '', description: '', image: '', buttonText: '', buttonLink: '', accent: '#7B1E2B' })
 
   useEffect(() => { window.scrollTo(0, 0) }, [])
 
@@ -2294,7 +2531,7 @@ function AdminPage() {
     e.preventDefault()
     if (!slideForm.title || !slideForm.image) return
     addSlide(slideForm)
-    setSlideForm({ title: '', subtitle: '', description: '', image: '', buttonText: '', buttonLink: '', accent: '#C9A96E' })
+    setSlideForm({ title: '', subtitle: '', description: '', image: '', buttonText: '', buttonLink: '', accent: '#7B1E2B' })
   }
 
   // ── Image upload handler ──
@@ -2359,7 +2596,17 @@ function AdminPage() {
             </svg>
             სლაიდები ({heroSlides.length})
           </button>
+          <button className={`admin-tab ${activeTab === 'collections' ? 'active' : ''}`} onClick={() => setActiveTab('collections')}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+            კოლექციები
+          </button>
         </div>
+
+        {activeTab === 'collections' && (
+          <CollectionsAdmin uploading={uploading} onUpload={handleImageUpload} />
+        )}
 
         {/* ════════════ Categories Tab ════════════ */}
         {activeTab === 'categories' && (
@@ -2370,11 +2617,11 @@ function AdminPage() {
                 <form onSubmit={handleCatSubmit}>
                   <div className="form-group">
                     <label htmlFor="cat-name">სახელი *</label>
-                    <input type="text" id="cat-name" value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })} placeholder="მაგ: სამისხდომო" required />
+                    <input type="text" id="cat-name" value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })} placeholder="მაგ: რვეულები" required />
                   </div>
                   <div className="form-group">
                     <label htmlFor="cat-slug">Slug (URL) *</label>
-                    <input type="text" id="cat-slug" value={catForm.slug} onChange={e => setCatForm({ ...catForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} placeholder="მაგ: chairs" required />
+                    <input type="text" id="cat-slug" value={catForm.slug} onChange={e => setCatForm({ ...catForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} placeholder="მაგ: notebooks" required />
                   </div>
                   <div className="form-group">
                     <label htmlFor="cat-desc">აღწერა</label>
@@ -2528,16 +2775,16 @@ function AdminPage() {
                   <div className="form-row">
                     <div className="form-group">
                       <label htmlFor="prod-dims">ზომები</label>
-                      <input type="text" id="prod-dims" value={prodForm.dimensions} onChange={e => setProdForm({ ...prodForm, dimensions: e.target.value })} placeholder="მაგ: 75 × 80 × 105 სმ" />
+                      <input type="text" id="prod-dims" value={prodForm.dimensions} onChange={e => setProdForm({ ...prodForm, dimensions: e.target.value })} placeholder="მაგ: A5, 96 ფურცელი" />
                     </div>
                     <div className="form-group">
                       <label htmlFor="prod-color">ფერი</label>
-                      <input type="text" id="prod-color" value={prodForm.color} onChange={e => setProdForm({ ...prodForm, color: e.target.value })} placeholder="მაგ: ნაცრისფერი" />
+                      <input type="text" id="prod-color" value={prodForm.color} onChange={e => setProdForm({ ...prodForm, color: e.target.value })} placeholder="მაგ: შინდისფერი" />
                     </div>
                   </div>
                   <div className="form-group">
                     <label htmlFor="prod-material">მასალა</label>
-                    <input type="text" id="prod-material" value={prodForm.material} onChange={e => setProdForm({ ...prodForm, material: e.target.value })} placeholder="მაგ: მუხის ხე, ბამბის ქსოვილი" />
+                    <input type="text" id="prod-material" value={prodForm.material} onChange={e => setProdForm({ ...prodForm, material: e.target.value })} placeholder="მაგ: ქაღალდი 80 გ/მ², მყარი ყდა" />
                   </div>
                   <div className="admin-form-actions">
                     <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
@@ -2612,11 +2859,11 @@ function AdminPage() {
                 <form onSubmit={handleAddSlide}>
                   <div className="form-group">
                     <label htmlFor="slide-title">სათაური *</label>
-                    <input type="text" id="slide-title" value={slideForm.title} onChange={e => setSlideForm({ ...slideForm, title: e.target.value })} placeholder="მაგ: ზაფხულის ფასდაკლება" required />
+                    <input type="text" id="slide-title" value={slideForm.title} onChange={e => setSlideForm({ ...slideForm, title: e.target.value })} placeholder="მაგ: სასკოლო სეზონი" required />
                   </div>
                   <div className="form-group">
                     <label htmlFor="slide-subtitle">ქვესათაური</label>
-                    <input type="text" id="slide-subtitle" value={slideForm.subtitle} onChange={e => setSlideForm({ ...slideForm, subtitle: e.target.value })} placeholder="მაგ: ყველა სავარძელზე -30%" />
+                    <input type="text" id="slide-subtitle" value={slideForm.subtitle} onChange={e => setSlideForm({ ...slideForm, subtitle: e.target.value })} placeholder="მაგ: ყველა რვეულზე -30%" />
                   </div>
                   <div className="form-group">
                     <label htmlFor="slide-desc">აღწერა</label>
@@ -2640,7 +2887,7 @@ function AdminPage() {
                     </div>
                     <div className="form-group">
                       <label htmlFor="slide-btn-link">ღილაკის ბმული</label>
-                      <input type="text" id="slide-btn-link" value={slideForm.buttonLink} onChange={e => setSlideForm({ ...slideForm, buttonLink: e.target.value })} placeholder="მაგ: /category/chairs" />
+                      <input type="text" id="slide-btn-link" value={slideForm.buttonLink} onChange={e => setSlideForm({ ...slideForm, buttonLink: e.target.value })} placeholder="მაგ: /category/notebooks" />
                     </div>
                   </div>
                   <div className="form-group">
@@ -2693,18 +2940,362 @@ function AdminPage() {
   )
 }
 
+/* ── Admin: Collections ──────────────────────────── */
+
+const collectionStatusLabels: Record<CollectionStatus, string> = {
+  active: 'აქტიური',
+  scheduled: 'დაგეგმილი',
+  expired: 'დასრულებული',
+  inactive: 'არააქტიური',
+}
+
+const productTags = ['ახალი', 'ბესტსელერი', 'ფასდაკლება']
+
+const emptyCollectionForm: SaveCollectionRequest = {
+  name: '',
+  slug: '',
+  description: '',
+  coverImage: '',
+  bannerImage: null,
+  isActive: true,
+  startDate: null,
+  endDate: null,
+  displayOrder: 0,
+  showOnHomepage: true,
+  showInSlider: false,
+  selectionMode: 'manual',
+  rules: { categorySlug: null, tag: null, minPrice: null, maxPrice: null, onSaleOnly: false },
+  productIds: [],
+}
+
+function toLocalInputValue(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function fromLocalInputValue(value: string): string | null {
+  return value ? new Date(value).toISOString() : null
+}
+
+function formatDate(iso: string | null): string {
+  return iso ? new Date(iso).toLocaleString('ka-GE', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
+}
+
+type CollectionsAdminProps = {
+  uploading: boolean
+  onUpload: (file: File, onSuccess: (url: string) => void) => void
+}
+
+function CollectionsAdmin({ uploading, onUpload }: CollectionsAdminProps) {
+  const { products, categories, refreshCollections } = useData()
+  const [items, setItems] = useState<CollectionAdminResponse[]>([])
+  const [form, setForm] = useState<SaveCollectionRequest>(emptyCollectionForm)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [productSearch, setProductSearch] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const load = useCallback(() => {
+    collectionsApi.getAllForAdmin()
+      .then(setItems)
+      .catch(err => alert(err instanceof Error ? err.message : 'კოლექციების ჩატვირთვა ვერ მოხერხდა.'))
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const rules = form.rules ?? emptyCollectionForm.rules!
+  const setRules = (patch: Partial<typeof rules>) => setForm({ ...form, rules: { ...rules, ...patch } })
+
+  const resetForm = () => {
+    setEditingId(null)
+    setForm(emptyCollectionForm)
+    setProductSearch('')
+  }
+
+  const startEdit = (c: CollectionAdminResponse) => {
+    setEditingId(c.id)
+    setForm({
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      coverImage: c.coverImage,
+      bannerImage: c.bannerImage,
+      isActive: c.isActive,
+      startDate: c.startDate,
+      endDate: c.endDate,
+      displayOrder: c.displayOrder,
+      showOnHomepage: c.showOnHomepage,
+      showInSlider: c.showInSlider,
+      selectionMode: c.selectionMode,
+      rules: c.rules,
+      productIds: c.productIds,
+    })
+    window.scrollTo({ top: 400, behavior: 'smooth' })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.coverImage) {
+      alert('ატვირთეთ კოლექციის საყდაურის ფოტო.')
+      return
+    }
+    const payload: SaveCollectionRequest = {
+      ...form,
+      rules: form.selectionMode === 'rules' ? rules : null,
+      productIds: form.selectionMode === 'manual' ? form.productIds : [],
+    }
+    setSaving(true)
+    try {
+      if (editingId) await collectionsApi.update(editingId, payload)
+      else await collectionsApi.create(payload)
+      resetForm()
+      load()
+      refreshCollections()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'შენახვა ვერ მოხერხდა.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (c: CollectionAdminResponse) => {
+    if (!confirm(`წაიშალოს კოლექცია „${c.name}“? პროდუქტები არ წაიშლება.`)) return
+    try {
+      await collectionsApi.delete(c.id)
+      if (editingId === c.id) resetForm()
+      load()
+      refreshCollections()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'წაშლა ვერ მოხერხდა.')
+    }
+  }
+
+  const toggleProduct = (id: string) => {
+    setForm({
+      ...form,
+      productIds: form.productIds.includes(id)
+        ? form.productIds.filter(p => p !== id)
+        : [...form.productIds, id],
+    })
+  }
+
+  const search = productSearch.trim().toLowerCase()
+  const pickerProducts = products.filter(p => !search || p.name.toLowerCase().includes(search))
+
+  return (
+    <div className="admin-section">
+      <div className="admin-grid">
+        <div className="admin-form-card">
+          <h3>{editingId ? 'კოლექციის რედაქტირება' : 'ახალი კოლექცია'}</h3>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label htmlFor="col-name">დასახელება *</label>
+              <input type="text" id="col-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="მაგ: სასკოლო შეთავაზებები" required />
+            </div>
+            <div className="form-group">
+              <label htmlFor="col-slug">Slug (URL) *</label>
+              <input type="text" id="col-slug" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} placeholder="მაგ: back-to-school" required />
+              {form.slug && <span className="form-hint">/collection/{form.slug}</span>}
+            </div>
+            <div className="form-group">
+              <label htmlFor="col-desc">აღწერა</label>
+              <textarea id="col-desc" rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="col-cover">Cover ფოტო * (მთავარი გვერდის ბლოკი)</label>
+              <input type="file" id="col-cover" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) onUpload(file, url => setForm(f => ({ ...f, coverImage: url })))
+              }} />
+            </div>
+            {form.coverImage && <div className="admin-preview-image"><img src={form.coverImage} alt="Cover preview" /></div>}
+
+            <div className="form-group">
+              <label htmlFor="col-banner">ბანერის ფოტო (სლაიდერი / კოლექციის გვერდი)</label>
+              <input type="file" id="col-banner" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) onUpload(file, url => setForm(f => ({ ...f, bannerImage: url })))
+              }} />
+              {uploading && <span className="upload-status">იტვირთება...</span>}
+            </div>
+            {form.bannerImage && (
+              <div className="admin-preview-image wide">
+                <img src={form.bannerImage} alt="Banner preview" />
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => setForm({ ...form, bannerImage: null, showInSlider: false })}>ბანერის წაშლა</button>
+              </div>
+            )}
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="col-start">დაწყება</label>
+                <input type="datetime-local" id="col-start" value={toLocalInputValue(form.startDate)} onChange={e => setForm({ ...form, startDate: fromLocalInputValue(e.target.value) })} />
+              </div>
+              <div className="form-group">
+                <label htmlFor="col-end">დასრულება</label>
+                <input type="datetime-local" id="col-end" value={toLocalInputValue(form.endDate)} onChange={e => setForm({ ...form, endDate: fromLocalInputValue(e.target.value) })} />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="col-order">რიგითობა</label>
+              <input type="number" id="col-order" min={0} value={form.displayOrder} onChange={e => setForm({ ...form, displayOrder: parseInt(e.target.value) || 0 })} />
+            </div>
+
+            <div className="form-checks">
+              <label className="checkbox-label">
+                <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} />
+                აქტიურია
+              </label>
+              <label className="checkbox-label">
+                <input type="checkbox" checked={form.showOnHomepage} onChange={e => setForm({ ...form, showOnHomepage: e.target.checked })} />
+                მთავარ გვერდზე გამოჩენა
+              </label>
+              <label className="checkbox-label">
+                <input type="checkbox" checked={form.showInSlider} disabled={!form.bannerImage} onChange={e => setForm({ ...form, showInSlider: e.target.checked })} />
+                სლაიდერში გამოჩენა {!form.bannerImage && <small>(საჭიროა ბანერი)</small>}
+              </label>
+            </div>
+
+            <div className="form-group">
+              <label>პროდუქტების შერჩევა</label>
+              <div className="segmented">
+                {(['manual', 'rules'] as CollectionSelectionMode[]).map(mode => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={form.selectionMode === mode ? 'active' : ''}
+                    onClick={() => setForm({ ...form, selectionMode: mode })}
+                  >
+                    {mode === 'manual' ? 'ხელით შერჩევა' : 'წესებით'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {form.selectionMode === 'manual' ? (
+              <div className="form-group">
+                <label htmlFor="col-product-search">პროდუქტები (არჩეულია {form.productIds.length})</label>
+                <input type="text" id="col-product-search" value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="ძებნა..." />
+                <div className="product-picker">
+                  {pickerProducts.map(p => (
+                    <label key={p.id} className="product-picker-item">
+                      <input type="checkbox" checked={form.productIds.includes(p.id)} onChange={() => toggleProduct(p.id)} />
+                      <img src={p.image} alt="" />
+                      <span>{p.name}</span>
+                      <strong>₾{p.price}</strong>
+                    </label>
+                  ))}
+                  {pickerProducts.length === 0 && <p className="form-hint">პროდუქტი ვერ მოიძებნა</p>}
+                </div>
+              </div>
+            ) : (
+              <div className="rules-box">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="rule-category">კატეგორია</label>
+                    <select id="rule-category" className="sort-select" style={{ width: '100%' }} value={rules.categorySlug ?? ''} onChange={e => setRules({ categorySlug: e.target.value || null })}>
+                      <option value="">ყველა</option>
+                      {categories.map(c => <option key={c.id} value={c.slug}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="rule-tag">თეგი</label>
+                    <select id="rule-tag" className="sort-select" style={{ width: '100%' }} value={rules.tag ?? ''} onChange={e => setRules({ tag: e.target.value || null })}>
+                      <option value="">ყველა</option>
+                      {productTags.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="rule-min">მინ. ფასი (₾)</label>
+                    <input type="number" id="rule-min" min={0} step="0.01" value={rules.minPrice ?? ''} onChange={e => setRules({ minPrice: e.target.value === '' ? null : Number(e.target.value) })} />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="rule-max">მაქს. ფასი (₾)</label>
+                    <input type="number" id="rule-max" min={0} step="0.01" value={rules.maxPrice ?? ''} onChange={e => setRules({ maxPrice: e.target.value === '' ? null : Number(e.target.value) })} />
+                  </div>
+                </div>
+                <label className="checkbox-label">
+                  <input type="checkbox" checked={rules.onSaleOnly} onChange={e => setRules({ onSaleOnly: e.target.checked })} />
+                  მხოლოდ ფასდაკლებული პროდუქტები
+                </label>
+                <p className="form-hint">პროდუქტები ავტომატურად განახლდება, როცა კატალოგი შეიცვლება.</p>
+              </div>
+            )}
+
+            <div className="admin-form-actions">
+              <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={saving || uploading}>
+                {saving ? 'ინახება...' : editingId ? 'შენახვა' : 'დამატება'}
+              </button>
+              {editingId && <button type="button" className="btn btn-outline" onClick={resetForm}>გაუქმება</button>}
+            </div>
+          </form>
+        </div>
+
+        <div className="admin-list">
+          <h3>კოლექციები</h3>
+          {items.length === 0 ? (
+            <div className="admin-empty"><p>კოლექციები არ არის დამატებული</p></div>
+          ) : (
+            <div className="admin-items">
+              {items.map(c => (
+                <div key={c.id} className={`admin-item ${editingId === c.id ? 'editing' : ''}`}>
+                  <div className="admin-item-image">
+                    <img src={c.coverImage} alt={c.name} />
+                  </div>
+                  <div className="admin-item-info">
+                    <h4>
+                      {c.name}{' '}
+                      <span className={`status-badge status-${c.status}`}>{collectionStatusLabels[c.status]}</span>
+                    </h4>
+                    <span className="admin-item-slug">/collection/{c.slug}</span>
+                    <p>{formatDate(c.startDate)} → {formatDate(c.endDate)}</p>
+                    <span className="admin-item-count">
+                      #{c.displayOrder} · {c.productCount} პროდუქტი ({c.selectionMode === 'manual' ? 'ხელით' : 'წესებით'})
+                      {c.showOnHomepage && ' · მთავარი'}
+                      {c.showInSlider && ' · სლაიდერი'}
+                    </span>
+                  </div>
+                  <div className="admin-item-actions">
+                    <button className="admin-edit-btn" onClick={() => startEdit(c)} aria-label="რედაქტირება">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                    <button className="admin-delete-btn" onClick={() => handleDelete(c)} aria-label="წაშლა">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export const routes: RouteObject[] = [
   {
     element: <Layout />,
     children: [
       { path: '/', element: <HomePage /> },
       { path: '/category/:slug', element: <CategoryPage /> },
+      { path: '/collection/:slug', element: <CollectionRoute /> },
       { path: '/product/:id', element: <ProductDetailPage /> },
       { path: '/cart', element: <CartPage /> },
       { path: '/about', element: <AboutPage /> },
       { path: '/business', element: <BusinessPage /> },
-      { path: '/quiz', element: <MattressQuizPage /> },
-      { path: '/mattress', element: <MattressBuilderPage /> },
+      { path: '/quiz', element: <StationeryQuizPage /> },
+      { path: '/notebook-builder', element: <NotebookBuilderPage /> },
       { path: '/admin/login', element: <AdminLoginPage /> },
       { path: '/admin', element: <RequireAuth><AdminPage /></RequireAuth> },
     ],

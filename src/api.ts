@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('taika-admin-token')
+  const token = localStorage.getItem('windlife-admin-token')
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
@@ -16,10 +16,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   })
   if (!res.ok) {
     if (res.status === 401) {
-      localStorage.removeItem('taika-admin-token')
+      localStorage.removeItem('windlife-admin-token')
     }
     const body = await res.json().catch(() => null)
-    throw new Error(body?.detail || body?.title || `Request failed: ${res.status}`)
+    const firstValidationError = body?.errors ? (Object.values(body.errors).flat()[0] as string | undefined) : undefined
+    throw new Error(firstValidationError || body?.detail || body?.title || `Request failed: ${res.status}`)
   }
   if (res.status === 204) return undefined as T
   return res.json()
@@ -111,6 +112,97 @@ export const heroSlidesApi = {
   create: (data: { title: string; subtitle: string; description: string; image: string; buttonText: string; buttonLink: string; accent: string }) =>
     request<HeroSlideResponse>('/api/hero-slides', { method: 'POST', body: JSON.stringify(data) }),
   delete: (id: string) => request<void>(`/api/hero-slides/${id}`, { method: 'DELETE' }),
+}
+
+// ── Collections (promo / seasonal) ──
+
+export type CollectionSelectionMode = 'manual' | 'rules'
+export type CollectionStatus = 'active' | 'scheduled' | 'expired' | 'inactive'
+
+export type CollectionRules = {
+  categorySlug: string | null
+  tag: string | null
+  minPrice: number | null
+  maxPrice: number | null
+  onSaleOnly: boolean
+}
+
+export type CollectionResponse = {
+  id: string
+  name: string
+  slug: string
+  description: string
+  coverImage: string
+  bannerImage: string | null
+  displayOrder: number
+  showOnHomepage: boolean
+  showInSlider: boolean
+  productCount: number
+}
+
+export type CollectionAdminResponse = CollectionResponse & {
+  isActive: boolean
+  startDate: string | null
+  endDate: string | null
+  status: CollectionStatus
+  selectionMode: CollectionSelectionMode
+  rules: CollectionRules
+  productIds: string[]
+}
+
+export type SaveCollectionRequest = {
+  name: string
+  slug: string
+  description: string
+  coverImage: string
+  bannerImage: string | null
+  isActive: boolean
+  startDate: string | null
+  endDate: string | null
+  displayOrder: number
+  showOnHomepage: boolean
+  showInSlider: boolean
+  selectionMode: CollectionSelectionMode
+  rules: CollectionRules | null
+  productIds: string[]
+}
+
+export type CollectionProductsParams = {
+  category?: string
+  minPrice?: number
+  maxPrice?: number
+  onSale?: boolean
+  sortBy?: string
+  page?: number
+  pageSize?: number
+}
+
+export type CollectionProductsResponse = PagedResponse<ProductResponse> & {
+  availableCategories: string[]
+}
+
+export const collectionsApi = {
+  getVisible: (placement?: 'homepage' | 'slider') =>
+    request<CollectionResponse[]>(`/api/collections${placement ? `?placement=${placement}` : ''}`),
+  getBySlug: (slug: string) => request<CollectionResponse>(`/api/collections/${encodeURIComponent(slug)}`),
+  getProducts: (slug: string, params: CollectionProductsParams = {}) => {
+    const sp = new URLSearchParams()
+    if (params.category) sp.set('category', params.category)
+    if (params.minPrice != null) sp.set('minPrice', String(params.minPrice))
+    if (params.maxPrice != null) sp.set('maxPrice', String(params.maxPrice))
+    if (params.onSale) sp.set('onSale', 'true')
+    if (params.sortBy) sp.set('sortBy', params.sortBy)
+    if (params.page) sp.set('page', String(params.page))
+    if (params.pageSize) sp.set('pageSize', String(params.pageSize))
+    const qs = sp.toString()
+    return request<CollectionProductsResponse>(`/api/collections/${encodeURIComponent(slug)}/products${qs ? `?${qs}` : ''}`)
+  },
+  getAllForAdmin: () => request<CollectionAdminResponse[]>('/api/admin/collections'),
+  create: (data: SaveCollectionRequest) =>
+    request<CollectionAdminResponse>('/api/collections', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: SaveCollectionRequest) =>
+    request<CollectionAdminResponse>(`/api/collections/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/api/collections/${id}`, { method: 'DELETE' }),
 }
 
 // ── Business Inquiries ──
